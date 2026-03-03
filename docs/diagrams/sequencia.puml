@@ -1,0 +1,81 @@
+@startuml
+title "Fluxo de Lançamento de Despesa com IA e Recorrência"
+
+actor Usuario
+participant "App Mobile" as App
+participant "TransactionService" as Service
+participant "RecurrenceService" as Recurrence
+participant "LLMService" as LLM
+participant "Local Database" as DB
+participant "BankService" as Bank
+
+Usuario -> App: 1. Abre app e acessa\n"Novo Lançamento"
+
+App --> Usuario: 2. Exibe formulário com opções:\n- Despesa pontual\n- Despesa recorrente
+
+Usuario -> App: 3. Seleciona "Despesa Recorrente"\ne preenche dados
+
+App -> Service: 4. Envia dados da transação
+
+Service -> Bank: 5. Busca bancos cadastrados
+Bank --> Service: 6. Lista de bancos
+
+Service --> App: 7. Solicita seleção de banco
+App --> Usuario: 8. Exibe bancos para seleção
+
+Usuario -> App: 9. Seleciona banco e confirma
+
+App -> Service: 10. Envia transação com banco
+
+alt Transação Recorrente
+    Service -> Recurrence: 11a. Configurar recorrência
+    
+    Recurrence -> DB: 12a. Salvar padrão de recorrência
+    DB --> Recurrence: 13a. Confirmação
+    
+    Recurrence -> Service: 14a. Recorrência configurada
+else Transação Pontual
+    Service -> DB: 11b. Salvar transação única
+    DB --> Service: 12b. Confirmação
+end
+
+par Processamento com IA
+    Service -> LLM: 13. Solicitar classificação\ninteligente da despesa
+    
+    LLM -> LLM: 14. Analisar descrição,\nvalor e categoria
+    
+    alt Sugestão de melhoria
+        LLM --> Service: 15a. Sugerir categoria\nou insights
+        Service --> App: 16a. Envia sugestões
+        App --> Usuario: 17a. "Baseado em seus gastos,\nesta categoria seria melhor?"
+        
+        Usuario -> App: 18a. Aceita ou rejeita sugestão
+    else Classificação normal
+        LLM --> Service: 15b. Confirma categoria
+    end
+end
+
+Service -> Service: 19. Atualizar saldos e orçamentos
+
+Service -> DB: 20. Persistir todas as alterações
+DB --> Service: 21. Confirmação final
+
+Service --> App: 22. Transação concluída
+App --> Usuario: 23. Exibe resumo e\npróximas despesas recorrentes
+
+note right of LLM
+  O modelo de linguagem:
+  - Classifica despesas automaticamente
+  - Sugere categorias otimizadas
+  - Identifica padrões de gastos
+  - Gera insights financeiros
+end note
+
+note right of Recurrence
+  Gerencia próximas ocorrências:
+  - Calcula datas futuras
+  - Cria lembretes
+  - Acumula valores previstos
+end note
+
+@enduml

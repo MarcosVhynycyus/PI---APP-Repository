@@ -1,0 +1,117 @@
+@startuml
+!define RECTANGLE class
+
+title "Arquitetura do App de Finanças Pessoais com IA"
+
+package "Frontend Mobile" {
+  rectangle "UI Components" {
+    [Telas de Dashboard]
+    [Formulários de Transação]
+    [Gráficos e Relatórios]
+    [Chat Interface]
+    [Gerenciador de Bancos]
+    [Configurações de Recorrência]
+  }
+  
+  rectangle "State Management" {
+    [Provider/Bloc]
+    [Rotas/Navegação]
+    [Cache Local]
+  }
+}
+
+package "Camada de Negócios" {
+  rectangle "Services" {
+    [AuthService]
+    [TransactionService]
+    [BudgetService]
+    [ReportService]
+    [BankService]
+    [RecurringPaymentService]
+  }
+  
+  rectangle "Validators" {
+    [TransactionValidator]
+    [BudgetValidator]
+    [BankValidator]
+    [RecurrenceValidator]
+  }
+  
+  rectangle "Calculators" {
+    [BalanceCalculator]
+    [InterestCalculator]
+    [ForecastCalculator]
+    [RecurrenceCalculator]
+  }
+}
+
+package "Camada de IA" {
+  rectangle "LLM Integration" {
+    [ChatService]
+    [ClassificationService]
+    [InsightGenerator]
+    [PredictiveAnalytics]
+  }
+  
+  rectangle "Modelos" {
+    [Modelo de Classificação]
+    [Modelo Preditivo]
+    [Modelo de NLP]
+  }
+  
+  rectangle "Prompts" {
+    [Prompt Templates]
+    [Context Builder]
+    [Response Parser]
+  }
+}
+
+package "Dados Locais" {
+  rectangle "Local Database" {
+    [SQLite/Realm]
+    [SharedPreferences]
+    [File Storage]
+  }
+  
+  rectangle "Entities" {
+    [User]
+    [Transaction]
+    [RecurringTransaction]
+    [Category]
+    [Budget]
+    [Goal]
+    [Bank]
+    [TransactionAttachment]
+  }
+  
+  rectangle "Repositories" {
+    [TransactionRepository]
+    [BankRepository]
+    [RecurrenceRepository]
+  }
+}
+
+package "Serviços Externos" {
+  rectangle "LLM API" {
+    [OpenAI/Claude/Llama]
+    [API Key Manager]
+    [Rate Limiter]
+  }
+  
+  rectangle "Backup Cloud" {
+    [Firebase/AWS]
+    [Encryption Service]
+  }
+}
+
+"Frontend Mobile" --> "Camada de Negócios" : chamadas de serviço
+"Camada de Negócios" --> "Dados Locais" : persistência
+"Camada de Negócios" --> "Camada de IA" : requisições de análise
+"Camada de IA" --> "Serviços Externos" : chamadas LLM API
+"Dados Locais" --> "Serviços Externos" : backup criptografado
+
+note top of "Camada de IA" : Processamento local + Cloud
+note bottom of "Dados Locais" : Suporte a dados offline
+note right of "RecurringTransaction" : Padrões de recorrência:\n- Diário\n- Semanal\n- Mensal\n- Anual\n- Personalizado
+
+@enduml
