@@ -1,0 +1,30 @@
+@startuml casos_de_uso
+left to right direction
+
+actor Usuario
+
+rectangle "FinansMe" {
+
+  Usuario -- (Fazer Login)
+  Usuario -- (Criar Conta)
+  Usuario -- (Recuperar Senha)
+
+  Usuario -- (Visualizar Dashboard)
+  Usuario -- (Interagir com a IA)
+
+  Usuario -- (Consultar Transatores)
+  Usuario -- (Cadastrar Transator)
+
+  Usuario -- (Consultar Bancos/Contas)
+  Usuario -- (Cadastrar Banco/Conta)
+
+  Usuario -- (Lançar Movimento Financeiro)
+  Usuario -- (Consultar Movimentos Financeiros)
+
+  Usuario -- (Consultar Planos de Contas)
+  Usuario -- (Cadastrar Plano de Conta)
+
+  Usuario -- (Manutenção de Perfil/Conta de Usuário)
+}
+
+@enduml
