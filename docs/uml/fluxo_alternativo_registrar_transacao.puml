@@ -1,0 +1,39 @@
+@startuml fluxo_alternativo_registrar_transacao
+ title Fluxo de Registrar Transação com Fluxos Alternativos
+
+actor Usuario
+participant "TransacaoView" as View
+participant "TransacaoPresenter" as Presenter
+participant "TransacaoModel/Service" as Model
+participant "Repository" as Repo
+
+Usuario -> View: Acessa nova transação
+View -> Presenter: solicitarFormulario()
+Presenter -> View: exibirFormulario()
+
+Usuario -> View: informa tipo, valor, data e descrição
+View -> Presenter: salvarTransacao(dados)
+Presenter -> Model: validarDados(dados)
+
+alt Campos obrigatórios ausentes
+  Model --> Presenter: erro de validação
+  Presenter -> View: exibirMensagem("Preencha os campos obrigatórios")
+else Valor menor ou igual a zero
+  Model --> Presenter: erro de regra de negócio
+  Presenter -> View: exibirMensagem("O valor deve ser maior que zero")
+else Dados válidos
+  Presenter -> Model: associarAoUsuario()
+  Presenter -> Repo: salvar(dados)
+
+  alt Falha ao persistir
+    Repo --> Presenter: erro de persistência
+    Presenter -> View: exibirMensagem("Não foi possível registrar a transação")
+  else Persistência realizada
+    Repo --> Presenter: sucesso
+    Presenter -> Model: recalcularSaldo()
+    Model --> Presenter: saldoAtualizado
+    Presenter -> View: exibirSucesso()
+    Presenter -> View: atualizarResumoFinanceiro()
+  end
+end
+@enduml

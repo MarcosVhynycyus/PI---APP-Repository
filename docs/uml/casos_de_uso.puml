@@ -1,30 +1,106 @@
-@startuml casos_de_uso
+@startuml casos_de_uso_mvp_atualizado
 left to right direction
+skinparam packageStyle rectangle
+skinparam usecase {
+  BackgroundColor White
+  BorderColor Black
+}
 
-actor Usuario
+actor "Usuário" as Usuario
 
 rectangle "FinansMe" {
+  usecase "UC01\nCadastrar usuário" as UC01
+  usecase "UC02\nAutenticar usuário" as UC02
+  usecase "UC03\nRegistrar transação" as UC03
+  usecase "UC04\nVisualizar histórico\nde transações" as UC04
+  usecase "UC05\nVisualizar situação\nfinanceira" as UC05
+  usecase "UC06\nEditar transação" as UC06
+  usecase "UC07\nExcluir transação" as UC07
+  usecase "UC08\nGerenciar contas\nou bancos" as UC08
+  usecase "UC09\nVisualizar e editar perfil" as UC09
+  usecase "UC10\nNavegar entre telas" as UC10
 
-  Usuario -- (Fazer Login)
-  Usuario -- (Criar Conta)
-  Usuario -- (Recuperar Senha)
-
-  Usuario -- (Visualizar Dashboard)
-  Usuario -- (Interagir com a IA)
-
-  Usuario -- (Consultar Transatores)
-  Usuario -- (Cadastrar Transator)
-
-  Usuario -- (Consultar Bancos/Contas)
-  Usuario -- (Cadastrar Banco/Conta)
-
-  Usuario -- (Lançar Movimento Financeiro)
-  Usuario -- (Consultar Movimentos Financeiros)
-
-  Usuario -- (Consultar Planos de Contas)
-  Usuario -- (Cadastrar Plano de Conta)
-
-  Usuario -- (Manutenção de Perfil/Conta de Usuário)
+  usecase "Validar autenticação" as AUTH
+  usecase "Validar dados da transação" as VALTRANS
+  usecase "Recalcular saldo" as SALDO
 }
+
+Usuario --> UC01
+Usuario --> UC02
+Usuario --> UC03
+Usuario --> UC04
+Usuario --> UC05
+Usuario --> UC06
+Usuario --> UC07
+Usuario --> UC08
+Usuario --> UC09
+Usuario --> UC10
+
+UC03 .> VALTRANS : <<include>>
+UC03 .> SALDO : <<include>>
+UC06 .> VALTRANS : <<include>>
+UC06 .> SALDO : <<include>>
+UC07 .> SALDO : <<include>>
+
+UC03 .> AUTH : <<include>>
+UC04 .> AUTH : <<include>>
+UC05 .> AUTH : <<include>>
+UC06 .> AUTH : <<include>>
+UC07 .> AUTH : <<include>>
+UC08 .> AUTH : <<include>>
+UC09 .> AUTH : <<include>>
+
+note right of UC03
+Fluxos alternativos:
+- campos obrigatórios ausentes
+- valor <= 0
+- falha ao persistir
+end note
+
+note right of UC06
+Fluxos alternativos:
+- edição não autorizada
+- dados inválidos
+- falha na atualização
+end note
+
+note right of UC07
+Fluxos alternativos:
+- cancelamento da exclusão
+- exclusão não autorizada
+- falha na remoção
+end note
+
+note bottom of UC05
+Relaciona-se ao cálculo:
+Saldo = receitas - despesas
+end note
+
+legend right
+= Relação com a arquitetura MVP =
+View:
+- LoginView
+- CadastroView
+- HomeView
+- TransacaoView
+- HistoricoView
+- PerfilView
+- BancosView
+
+Presenter:
+- AuthPresenter
+- TransacaoPresenter
+- HomePresenter
+- PerfilPresenter
+- BancosPresenter
+
+Model:
+- Usuario
+- Transacao
+- Conta/Banco
+- AuthService
+- TransacaoRepository
+- BalanceService
+endlegend
 
 @enduml
