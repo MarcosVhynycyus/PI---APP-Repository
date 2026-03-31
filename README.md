@@ -1,18 +1,18 @@
 # 💰 FinansMe - Controle Financeiro Pessoal
 
-Aplicativo mobile para gestão de finanças pessoais, desenvolvido com **Flutter** no frontend e **Nest.js** no backend, que se comunica através de uma API RESTful. O sistema permite o controle completo de despesas e receitas, com suporte a lançamentos recorrentes ou pontuais, além da gestão de bancos e contas.
+Aplicativo mobile para gestão de finanças pessoais, desenvolvido com **Flutter** no frontend e **Node.js** com **Fastify** com typescript no backend, que se comunica através de uma API RESTful. O sistema permite o controle completo de despesas e receitas, com suporte a lançamentos recorrentes ou pontuais, além da gestão de bancos e contas.
 
 ---
 
 ## 📌 Sobre o Projeto
 
-O **Meu Dinheiro** nasceu da necessidade de oferecer uma ferramenta simples, eficiente e personalizável para que pessoas físicas possam organizar suas finanças do dia a dia. Com ele, o usuário consegue visualizar para onde seu dinheiro está indo, planejar gastos futuros e manter um histórico claro de todas as movimentações financeiras.
+O **FinansMe** nasceu da necessidade de oferecer uma ferramenta simples, eficiente e personalizável para que pessoas físicas possam organizar suas finanças do dia a dia. Com ele, o usuário consegue visualizar para onde seu dinheiro está indo, planejar gastos futuros e manter um histórico claro de todas as movimentações financeiras.
 
 ---
 
 ## 🎯 Problema
 
-Muitas pessoas enfrentam dificuldades para controlar seus gastos mensais, seja por falta de uma ferramenta adequada, seja pela complexidade das soluções existentes. Planilhas podem se tornar confusas e aplicativos genéricos nem sempre se adaptam à realidade de cada um. O **Meu Dinheiro** resolve isso oferecendo uma interface intuitiva e recursos essenciais para o dia a dia financeiro, com suporte a lançamentos recorrentes (como contas fixas) e a possibilidade de organizar o dinheiro em diferentes contas e bancos.
+Muitas pessoas enfrentam dificuldades para controlar seus gastos mensais, seja por falta de uma ferramenta adequada, seja pela complexidade das soluções existentes. Planilhas podem se tornar confusas e aplicativos genéricos nem sempre se adaptam à realidade de cada um. O **FinansMe** resolve isso oferecendo uma interface intuitiva e recursos essenciais para o dia a dia financeiro, com suporte a lançamentos recorrentes (como contas fixas) e a possibilidade de organizar o dinheiro em diferentes contas e bancos.
 
 ---
 
@@ -71,6 +71,6 @@ Os épicos abaixo representam as grandes frentes de desenvolvimento do projeto e
 ## 🛠️ Tecnologias Utilizadas
 
 - **Frontend Mobile:** Flutter (Dart)
-- **Backend:** Nest.js (Node.js + TypeScript)
+- **Backend:** Fastify (Node.js + TypeScript)
 - **API:** RESTful
 - **Autenticação:** JWT (JSON Web Tokens)
