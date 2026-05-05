@@ -22,12 +22,13 @@ class TransactorsService {
       final response =
           await http.get(Uri.parse('$baseUrl/transactors'));
 
-      final data = response.body.isNotEmpty
-          ? jsonDecode(response.body)
-          : [];
+      final Map<String, dynamic> body =
+          response.body.isNotEmpty
+              ? jsonDecode(response.body)
+              : {};
 
       if (response.statusCode == 200) {
-        return data;
+        return body['data'] ?? [];
       } else {
         throw TransactorsException(
             'Error fetching transactors.');
@@ -41,7 +42,7 @@ class TransactorsService {
     Future<List<dynamic>> getUserTransactors(
       String token)  async {
       try {
-        final response = await http.get(
+      final response = await http.get(
           Uri.parse('$baseUrl/user-transactors'),
           headers: {
             'Content-Type': 'application/json',
@@ -49,12 +50,13 @@ class TransactorsService {
             }
           );
 
-        final data = response.body.isNotEmpty
-        ? jsonDecode(response.body)
-        : [];
+      final Map<String, dynamic> body =
+          response.body.isNotEmpty
+              ? jsonDecode(response.body)
+              : {};
 
       if (response.statusCode == 200) {
-        return data;
+        return body['data'] ?? [];
       } else {
         throw TransactorsException(
           'Error fetching transactors.');        
