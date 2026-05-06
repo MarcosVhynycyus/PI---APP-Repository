@@ -25,6 +25,11 @@ class ProfilePage extends StatelessWidget {
             const SettingsTile(
                 icon: Icons.account_balance_wallet_outlined,
                 title: 'Minha Conta'),
+            SettingsTile(
+              icon: Icons.category_outlined,
+              title: 'Planos de Conta',
+              onTap: () => Navigator.pushNamed(context, '/account-plans'),
+            ),
             const SettingsTile(icon: Icons.currency_exchange, title: 'Moeda'),
             const SizedBox(height: 24),
             Text('Segurança',

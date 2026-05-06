@@ -3,8 +3,14 @@ import 'package:flutter/material.dart';
 class SettingsTile extends StatelessWidget {
   final IconData icon;
   final String title;
+  final VoidCallback? onTap;
 
-  const SettingsTile({super.key, required this.icon, required this.title});
+  const SettingsTile({
+    super.key,
+    required this.icon,
+    required this.title,
+    this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -16,7 +22,7 @@ class SettingsTile extends StatelessWidget {
           borderRadius: BorderRadius.circular(18),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.05),
+              color: Colors.black.withValues(alpha: 0.05),
               blurRadius: 10,
               offset: const Offset(0, 4),
             ),
@@ -24,9 +30,10 @@ class SettingsTile extends StatelessWidget {
         ),
         child: ListTile(
           leading: Icon(icon, color: const Color(0xFF5B1FA6)),
-          title: Text(title, style: const TextStyle(fontWeight: FontWeight.w600)),
+          title:
+              Text(title, style: const TextStyle(fontWeight: FontWeight.w600)),
           trailing: const Icon(Icons.chevron_right),
-          onTap: () {},
+          onTap: onTap,
         ),
       ),
     );
