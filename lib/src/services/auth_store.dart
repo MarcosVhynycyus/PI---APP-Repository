@@ -19,4 +19,9 @@ class AuthStore {
   static Future<void> clear() async {
     await _storage.delete(key: _keyToken);
   }
+
+  // Alias semantico para o fluxo de logout
+  static Future<void> logout() async {
+    await clear();
+  }
 }

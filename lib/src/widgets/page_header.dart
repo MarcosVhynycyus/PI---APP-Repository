@@ -27,10 +27,13 @@ class PageHeader extends StatelessWidget {
         children: [
           if (showLogo)
             InkWell(
-              onTap: () => Navigator.pushReplacementNamed(context, '/'),
+              onTap: () => Navigator.pushNamedAndRemoveUntil(
+                context,
+                '/main',
+                (route) => false,
+              ),
               child: const AppLogo(),
-              )
-            ,
+            ),
           if (showLogo) const SizedBox(width: 12),
           Expanded(
             child: Text(
@@ -42,11 +45,17 @@ class PageHeader extends StatelessWidget {
               ),
             ),
           ),
-          IconButton(onPressed: () {}, icon: const Icon(Icons.notifications_none, color: Colors.white)),
-          IconButton(onPressed: () {}, icon: const Icon(Icons.search, color: Colors.white)),
+          IconButton(
+              onPressed: () {},
+              icon: const Icon(Icons.notifications_none, color: Colors.white)),
+          IconButton(
+              onPressed: () {},
+              icon: const Icon(Icons.search, color: Colors.white)),
           const CircleAvatar(
             backgroundColor: Colors.white,
-            child: Text('A', style: TextStyle(color: Color(0xFF241136), fontWeight: FontWeight.bold)),
+            child: Text('A',
+                style: TextStyle(
+                    color: Color(0xFF241136), fontWeight: FontWeight.bold)),
           ),
         ],
       ),

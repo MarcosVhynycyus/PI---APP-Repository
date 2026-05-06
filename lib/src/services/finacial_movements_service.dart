@@ -1,83 +1,91 @@
-import 'dart:convert';
-import 'package:http/http.dart' as http;
-import '../config/env.dart';
-
+import 'api_client.dart';
+import 'auth_store.dart';
 
 class FinancialMovementsException implements Exception {
   final String message;
-      FinancialMovementsException(this.message);
+  FinancialMovementsException(this.message);
 
   @override
   String toString() => message;
 }
 
 class FinancialMovementsService {
-  final String baseUrl;
+  final ApiClient api;
 
-  FinancialMovementsService({String? baseUrl})
-      : baseUrl = baseUrl ?? Env.apiBaseUrl;
+  FinancialMovementsService({ApiClient? api}) : api = api ?? ApiClient();
 
-  Future<List<dynamic>> getFinancialMovements(
-    String token) async {
-  try {
-    final response = await http.get(
-      Uri.parse('$baseUrl/financial-movements'),
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer $token',
-      },
-    );
+  Future<String> _getTokenOrThrow() async {
+    final token = await AuthStore.getToken();
 
-    final Map<String, dynamic> body =
-        response.body.isNotEmpty
-            ? jsonDecode(response.body)
-            : {};
-
-    if (response.statusCode == 200) {
-      return body['data'] ?? [];
-    } else {
+    if (token == null || token.isEmpty) {
       throw FinancialMovementsException(
-          'Error fetching financial movements.');
+        'Sessao expirada. Faca login novamente.',
+      );
     }
-  } catch (_) {
-    throw FinancialMovementsException(
-        'Connection error with API.');
-  }
-}
-  
-  Future<List<dynamic>> getUserFinancialMovements(
-    String token) async {
-  try {
-    final response = await http.get(
-      Uri.parse('$baseUrl/user-financial-movements'),
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer $token',
-        
-      },
-    );
 
-    final Map<String, dynamic> body =
-        response.body.isNotEmpty
-            ? jsonDecode(response.body)
-            : {};
-
-    if (response.statusCode == 200) {
-      return body['data'] ?? [];
-    } else {
-      throw FinancialMovementsException(
-          'Error fetching user financial movements.');
-    }
-  } catch (_) {
-    throw FinancialMovementsException(
-        'Connection error with API.');
+    return token;
   }
-}
-  
-  Future<void> createFinancialMovement(
-    String token,
-    Map<String, dynamic> body) async {
+
+  Future<List<dynamic>> getFinancialMovements() async {
     try {
+      final token = await _getTokenOrThrow();
+      final response = await api.get(
+        '/financial-movements',
+        token: token,
+      );
+
+      final data = response['data'];
+      if (data is List<dynamic>) {
+        return data;
+      }
+
+      throw FinancialMovementsException(
+        'Resposta invalida da API.',
+      );
+    } on ApiException catch (e) {
+      throw FinancialMovementsException(e.message);
+    } on FinancialMovementsException {
+      rethrow;
+    } catch (_) {
+      throw FinancialMovementsException(
+        'Connection error with API.',
+      );
+    }
+  }
+
+  Future<List<dynamic>> getUserFinancialMovements() async {
+    try {
+      final token = await _getTokenOrThrow();
+      final response = await api.get(
+        '/user-financial-movements',
+        token: token,
+      );
+
+      final data = response['data'];
+      if (data is List<dynamic>) {
+        return data;
+      }
+
+      throw FinancialMovementsException(
+        'Resposta invalida da API.',
+      );
+    } on ApiException catch (e) {
+      throw FinancialMovementsException(e.message);
+    } on FinancialMovementsException {
+      rethrow;
+    } catch (_) {
+      throw FinancialMovementsException(
+        'Connection error with API.',
+      );
+    }
+  }
+
+  Future<void> createFinancialMovement(
+    Map<String, dynamic> body,
+  ) async {
+    try {
+      final token = await _getTokenOrThrow();
+
       final requiredFields = [
         'type_movement_id',
         'movement_date',
@@ -101,71 +109,56 @@ class FinancialMovementsService {
         }
       }
 
-      final response = await http.post(
-        Uri.parse('$baseUrl/financial-movements'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $token',
-      },
-        body: jsonEncode(body),
-    );
-
-      if (response.statusCode != 200 &&
-          response.statusCode != 201) {
-        throw FinancialMovementsException(
-            'Error creating financial movement.');
-      }
+      await api.post(
+        '/financial-movements',
+        body: body,
+        token: token,
+      );
+    } on ApiException catch (e) {
+      throw FinancialMovementsException(e.message);
     } on FinancialMovementsException {
       rethrow;
     } catch (_) {
       throw FinancialMovementsException(
-          'Connection error with API.');
+        'Connection error with API.',
+      );
     }
   }
 
   Future<void> updateFinancialMovement(
-      String token,
-      int id,
-      Map<String, dynamic> body) async {
+    int id,
+    Map<String, dynamic> body,
+  ) async {
     try {
-      
-      final response = await http.put(
-        Uri.parse('$baseUrl/financial-movements/$id'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $token',
-      },
-        body: jsonEncode(body),
-    );
+      final token = await _getTokenOrThrow();
 
-      if (response.statusCode != 200) {
-        throw FinancialMovementsException(
-            'Error updating financial movement.');
-      }
+      await api.put(
+        '/financial-movements/$id',
+        body: body,
+        token: token,
+      );
+    } on ApiException catch (e) {
+      throw FinancialMovementsException(e.message);
     } catch (_) {
       throw FinancialMovementsException(
-          'Connection error with API.');
+        'Connection error with API.',
+      );
     }
   }
 
-  Future<void> deleteFinancialMovement(
-      String token,
-      int id) async {
+  Future<void> deleteFinancialMovement(int id) async {
     try {
-      final response = await http.delete(
-        Uri.parse('$baseUrl/financial-movements/$id'),
-        headers: {
-          'Authorization': 'Bearer $token',
-       },
-    );
-
-      if (response.statusCode != 200) {
-        throw FinancialMovementsException(
-            'Error deleting financial movement.');
-      }
+      final token = await _getTokenOrThrow();
+      await api.delete(
+        '/financial-movements/$id',
+        token: token,
+      );
+    } on ApiException catch (e) {
+      throw FinancialMovementsException(e.message);
     } catch (_) {
       throw FinancialMovementsException(
-          'Connection error with API.');
+        'Connection error with API.',
+      );
     }
   }
 }

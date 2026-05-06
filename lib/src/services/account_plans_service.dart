@@ -1,6 +1,5 @@
-import 'dart:convert';
-import 'package:http/http.dart' as http;
-import '../config/env.dart';
+import 'api_client.dart';
+import 'auth_store.dart';
 
 class AccountPlansException implements Exception {
   final String message;
@@ -12,30 +11,48 @@ class AccountPlansException implements Exception {
 }
 
 class AccountPlansService {
-  final String baseUrl;
+  final ApiClient api;
 
-  AccountPlansService({String? baseUrl})
-      : baseUrl = baseUrl ?? Env.apiBaseUrl;
+  AccountPlansService({ApiClient? api}) : api = api ?? ApiClient();
 
-  
-  Future<List<dynamic>> getAccountPlans() async {
-    try {
-      final response =
-          await http.get(Uri.parse('$baseUrl/planos-de-conta'));
+  Future<String> _getTokenOrThrow() async {
+    final token = await AuthStore.getToken();
 
-      final data = response.body.isNotEmpty
-          ? jsonDecode(response.body)
-          : [];
-
-      if (response.statusCode == 200) {
-        return data;
-      } else {
-        throw AccountPlansException(
-            'Error fetching account plans.');
-      }
-    } catch (_) {
+    if (token == null || token.isEmpty) {
       throw AccountPlansException(
-          'Connection error with API.');
+        'Sessao expirada. Faca login novamente.',
+      );
     }
+
+    return token;
+  }
+
+  Future<List<dynamic>> getUserAccountPlans() async {
+    try {
+      final token = await _getTokenOrThrow();
+
+      final response = await api.get(
+        '/user-account-plans',
+        token: token,
+      );
+
+      final data = response['data'];
+
+      if (data is List<dynamic>) {
+        return data;
+      }
+
+      throw AccountPlansException('Resposta invalida da API.');
+    } on ApiException catch (e) {
+      throw AccountPlansException(e.message);
+    } on AccountPlansException {
+      rethrow;
+    } catch (_) {
+      throw AccountPlansException('Connection error with API.');
+    }
+  }
+
+  Future<List<dynamic>> getAccountPlans() async {
+    return getUserAccountPlans();
   }
 }

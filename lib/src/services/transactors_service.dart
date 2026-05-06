@@ -1,6 +1,5 @@
-import 'dart:convert';
-import 'package:http/http.dart' as http;
-import '../config/env.dart';
+import 'api_client.dart';
+import 'auth_store.dart';
 
 class TransactorsException implements Exception {
   final String message;
@@ -12,81 +11,39 @@ class TransactorsException implements Exception {
 }
 
 class TransactorsService {
-  final String baseUrl;
+  final ApiClient api;
 
-  TransactorsService({String? baseUrl})
-      : baseUrl = baseUrl ?? Env.apiBaseUrl;
+  TransactorsService({ApiClient? api}) : api = api ?? ApiClient();
+
+  Future<String> _getTokenOrThrow() async {
+    final token = await AuthStore.getToken();
+
+    if (token == null || token.isEmpty) {
+      throw TransactorsException(
+        'Sessao expirada. Faca login novamente.',
+      );
+    }
+
+    return token;
+  }
 
   Future<List<dynamic>> getTransactors() async {
     try {
-      final response =
-          await http.get(Uri.parse('$baseUrl/transactors'));
-
-      final Map<String, dynamic> body =
-          response.body.isNotEmpty
-              ? jsonDecode(response.body)
-              : {};
-
-      if (response.statusCode == 200) {
-        return body['data'] ?? [];
-      } else {
-        throw TransactorsException(
-            'Error fetching transactors.');
-      }
-    } catch (_) {
-      throw TransactorsException(
-          'Connection error with API.');
-    }
-  }
-    
-    Future<List<dynamic>> getUserTransactors(
-      String token)  async {
-      try {
-      final response = await http.get(
-          Uri.parse('$baseUrl/user-transactors'),
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': 'Bearer $token',
-            }
-          );
-
-      final Map<String, dynamic> body =
-          response.body.isNotEmpty
-              ? jsonDecode(response.body)
-              : {};
-
-      if (response.statusCode == 200) {
-        return body['data'] ?? [];
-      } else {
-        throw TransactorsException(
-          'Error fetching transactors.');        
-      }
-    } catch (_) {
-      throw TransactorsException(
-        'Connection error with API');
-    }
-      }
-
-    Future<void> createTransactor(
-      String token,
-      Map<String, dynamic> body,
-  ) async {
-    try {
-      final response = await http.post(
-        Uri.parse('$baseUrl/transactors'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $token',
-        },
-        body: jsonEncode(body),
+      final token = await _getTokenOrThrow();
+      final response = await api.get(
+        '/transactors',
+        token: token,
       );
 
-      if (response.statusCode != 200 &&
-          response.statusCode != 201) {
-        throw TransactorsException(
-          'Error creating transactor.',
-        );
+      final data = response['data'];
+
+      if (data is List<dynamic>) {
+        return data;
       }
+
+      throw TransactorsException('Resposta invalida da API.');
+    } on ApiException catch (e) {
+      throw TransactorsException(e.message);
     } on TransactorsException {
       rethrow;
     } catch (_) {
@@ -95,48 +52,87 @@ class TransactorsService {
       );
     }
   }
-    Future<void> updateTransactor(
-      String token,
-      int id,
-      Map<String, dynamic> body,
-    ) async {
-      try {
-        final response = await http.put(
-          Uri.parse('$baseUrl/transactors/$id'),
-          headers: {
-            'Content-Type' : 'application/json',
-            'Authorization' : 'Bearer $token',
-          },
-          body: jsonEncode(body),
-        );
-        if (response.statusCode !=200) {
-          throw TransactorsException(
-            'Error updating transactor.',
-          );
-        }
-      } catch (_) {
-        throw TransactorsException(
-          'Connection error with API.',
-        );
+
+  Future<List<dynamic>> getUserTransactors() async {
+    try {
+      final token = await _getTokenOrThrow();
+      final response = await api.get(
+        '/user-transactors',
+        token: token,
+      );
+
+      final data = response['data'];
+
+      if (data is List<dynamic>) {
+        return data;
       }
+
+      throw TransactorsException(
+        'Resposta invalida da API.',
+      );
+    } on ApiException catch (e) {
+      throw TransactorsException(e.message);
+    } on TransactorsException {
+      rethrow;
+    } catch (_) {
+      throw TransactorsException(
+        'Connection error with API',
+      );
     }
-      Future<void> deleteTransactor(
-    String token,
+  }
+
+  Future<void> createTransactor(
+    Map<String, dynamic> body,
+  ) async {
+    try {
+      final token = await _getTokenOrThrow();
+      await api.post(
+        '/transactors',
+        body: body,
+        token: token,
+      );
+    } on ApiException catch (e) {
+      throw TransactorsException(e.message);
+    } on TransactorsException {
+      rethrow;
+    } catch (_) {
+      throw TransactorsException(
+        'Connection error with API.',
+      );
+    }
+  }
+
+  Future<void> updateTransactor(
+    int id,
+    Map<String, dynamic> body,
+  ) async {
+    try {
+      final token = await _getTokenOrThrow();
+      await api.put(
+        '/transactors/$id',
+        body: body,
+        token: token,
+      );
+    } on ApiException catch (e) {
+      throw TransactorsException(e.message);
+    } catch (_) {
+      throw TransactorsException(
+        'Connection error with API.',
+      );
+    }
+  }
+
+  Future<void> deleteTransactor(
     int id,
   ) async {
     try {
-      final response = await http.delete(
-        Uri.parse('$baseUrl/transactors/$id'),
-        headers: {
-          'Authorization': 'Bearer $token',
-        },
+      final token = await _getTokenOrThrow();
+      await api.delete(
+        '/transactors/$id',
+        token: token,
       );
-
-      if (response.statusCode != 200) {
-        throw TransactorsException(
-          'Error deleting transactor.',
-        );
-      }
+    } on ApiException catch (e) {
+      throw TransactorsException(e.message);
     } catch (_) {
       throw TransactorsException(
         'Connection error with API.',
@@ -144,4 +140,3 @@ class TransactorsService {
     }
   }
 }
-      
