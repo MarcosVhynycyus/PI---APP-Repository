@@ -1,6 +1,5 @@
-import 'dart:convert';
-import 'package:http/http.dart' as http;
-import '../config/env.dart';
+import 'api_client.dart';
+import 'auth_store.dart';
 
 class BanksException implements Exception {
   final String message;
@@ -12,69 +11,91 @@ class BanksException implements Exception {
 }
 
 class BanksService {
-  final String baseUrl;
+  final ApiClient api;
 
-  BanksService({String? baseUrl})
-      : baseUrl = baseUrl ?? Env.apiBaseUrl;
+  BanksService({ApiClient? api}) : api = api ?? ApiClient();
+
+  //==========
+  // GET BANK
+  //==========
 
   Future<List<dynamic>> getBanks() async {
     try {
-      final response = await http.get(Uri.parse('$baseUrl/contas'));
+      final token = await AuthStore.getToken();
 
-      final data = response.body.isNotEmpty
-          ? jsonDecode(response.body)
-          : [];
+      final response = await api.get(
+        '/user-accounts',
+        token: token
+      );
 
-      if (response.statusCode == 200) {
+      final data = response['data'];
+
+      if (data is List<dynamic>) {
         return data;
-      } else {
-        throw BanksException('Error fetching banks.');
       }
+      throw BanksException('Resposta inválida da API'); 
+    } on ApiException catch (e) {
+      throw BanksException(e.message);
     } catch (_) {
       throw BanksException('Connection error with API.');
     }
   }
+
+  //===========
+  // POST BANK
+  //===========
 
   Future<void> createBank(Map<String, dynamic> body) async {
     try {
-      final response = await http.post(
-        Uri.parse('$baseUrl/contas'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode(body),
-      );
+      final token = await AuthStore.getToken();
 
-      if (response.statusCode != 200 && response.statusCode != 201) {
-        throw BanksException('Error creating bank.');
-      }
+      await api.post(
+        '/accounts',
+        body: body,
+        token: token,
+      );
+    } on ApiException catch (e) {
+      throw BanksException(e.message);
     } catch (_) {
       throw BanksException('Connection error with API.');
     }
   }
+
+  //=============
+  // UPDATE BANK
+  //=============
 
   Future<void> updateBank(int id, Map<String, dynamic> body) async {
     try {
-      final response = await http.put(
-        Uri.parse('$baseUrl/contas/$id'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode(body),
+      final token = await AuthStore.getToken();
+
+      await api.put(
+        'accounts/$id',
+        body: body,
+        token: token,
       );
 
-      if (response.statusCode != 200) {
-        throw BanksException('Error updating bank.');
-      }
+    } on ApiException catch (e) {
+      throw BanksException(e.message);
     } catch (_) {
       throw BanksException('Connection error with API.');
     }
   }
 
+  //=============
+  // DELETE BANK
+  //=============
+
   Future<void> deleteBank(int id) async {
     try {
-      final response =
-          await http.delete(Uri.parse('$baseUrl/contas/$id'));
+      final token = await AuthStore.getToken();
 
-      if (response.statusCode != 200) {
-        throw BanksException('Error deleting bank.');
-      }
+      await api.delete(
+        '/accounts/$id',
+        token: token,
+      );
+    } on ApiException catch (e) {
+      throw BanksException(e.message);
     } catch (_) {
       throw BanksException('Connection error with API.');
     }

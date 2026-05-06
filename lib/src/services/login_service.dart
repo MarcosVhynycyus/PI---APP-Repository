@@ -1,13 +1,10 @@
-import 'dart:convert';
+import 'api_client.dart';
 
-import 'package:http/http.dart' as http;
-import '../config/env.dart';
-
-class LoginResult {
+class LoginResponse {
   final String token;
   final String message;
 
-  LoginResult({
+  LoginResponse({
     required this.token,
     required this.message,
   });
@@ -23,58 +20,34 @@ class LoginException implements Exception {
 }
 
 class LoginService {
-  final String baseUrl;
+  final ApiClient api;
 
-  LoginService({String? baseUrl})
-      : baseUrl = baseUrl ?? Env.apiBaseUrl;
+  LoginService({ApiClient? api})
+      : api = api ?? ApiClient();
 
-  Future<LoginResult> login({
+  Future<LoginResponse> login({
     required String email,
     required String password,
   }) async {
     try {
-      final response = await http.post(
-        Uri.parse('$baseUrl/login'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
+      final data = await api.post(
+        '/login',
+        body: {
           'email': email.trim(),
           'password_hash': password,
-        }),
+        },
       );
 
-      final Map<String, dynamic> data = response.body.isNotEmpty
-          ? jsonDecode(response.body) as Map<String, dynamic>
-          : {};
-
-      switch (response.statusCode) {
-        case 200:
-          return LoginResult(
-            token: data['token']?.toString() ?? '',
-            message:
-                data['message']?.toString() ?? 'Login realizado com sucesso.',
-          );
-
-        case 401:
-          throw LoginException(
-            data['message']?.toString() ?? 'Senha incorreta.',
-          );
-
-        case 404:
-        case 409:
-        case 500:
-          throw LoginException(
-            data['message']?.toString() ??
-                'Não foi possível realizar o login.',
-          );
-
-        default:
-          throw LoginException('Erro inesperado: ${response.statusCode}.');
-      }
-    } on FormatException {
-      throw LoginException('Resposta inválida da API.');
+      return LoginResponse(
+        token: data['token']?.toString() ?? '',
+        message: data['message']?.toString() ?? 'Login realizado com sucesso.',
+      );
+    } on ApiException catch (e) {
+      // Mantém o comportamento de transformar em LoginException
+      throw LoginException(e.message);
     } catch (_) {
       throw LoginException(
-        'Erro de conexão ao tentar acessar a API.',
+        'Erro de conexão ao tentar fazer login.',
       );
     }
   }

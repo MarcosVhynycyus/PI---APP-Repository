@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/widget_previews.dart';
-
+import '../services/auth_store.dart';
 import '../services/login_service.dart';
 import '../widgets/app_logo.dart';
 
@@ -38,6 +38,8 @@ class _LoginPageState extends State<LoginPage> {
         password: _passwordController.text,
       );
 
+      await AuthStore.setToken(result.token); //  <---- SALVA TOKEN PERSISTENTE
+
       if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
@@ -47,7 +49,6 @@ class _LoginPageState extends State<LoginPage> {
       Navigator.pushReplacementNamed(
         context,
         '/main',
-        arguments: result.token,
       );
     } on LoginException catch (e) {
       if (!mounted) return;
