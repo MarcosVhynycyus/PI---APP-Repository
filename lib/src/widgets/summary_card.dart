@@ -1,7 +1,18 @@
 import 'package:flutter/material.dart';
 
 class SummaryCard extends StatelessWidget {
-  const SummaryCard({super.key});
+  final bool isLoading;
+  final double totalBalance;
+  final String? errorMessage;
+  final VoidCallback? onRetry;
+
+  const SummaryCard({
+    super.key,
+    required this.isLoading,
+    required this.totalBalance,
+    this.errorMessage,
+    this.onRetry,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -19,14 +30,63 @@ class SummaryCard extends StatelessWidget {
           ),
         ],
       ),
-      child: const Column(
+      child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Saldo Total', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-          SizedBox(height: 8),
-          Text('R\$ 120.200,50', style: TextStyle(fontSize: 32, fontWeight: FontWeight.w700)),
+          const Text(
+            'Saldo Total',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 8),
+          if (isLoading)
+            const SizedBox(
+              height: 38,
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: SizedBox(
+                  width: 22,
+                  height: 22,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
+              ),
+            )
+          else if (errorMessage != null)
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    errorMessage!,
+                    style: const TextStyle(
+                      color: Colors.red,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+                if (onRetry != null)
+                  TextButton(
+                    onPressed: onRetry,
+                    child: const Text('Tentar'),
+                  ),
+              ],
+            )
+          else
+            Text(
+              _formatCurrency(totalBalance),
+              style: const TextStyle(
+                fontSize: 32,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
         ],
       ),
     );
+  }
+
+  String _formatCurrency(double value) {
+    final fixed = value.toStringAsFixed(2).replaceAll('.', ',');
+    return 'R\$ $fixed';
   }
 }

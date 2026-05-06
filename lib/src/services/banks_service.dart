@@ -1,5 +1,7 @@
 import 'api_client.dart';
 import 'auth_store.dart';
+import 'balance_refresh_notifier.dart';
+import '../models/account_model.dart';
 
 class BanksException implements Exception {
   final String message;
@@ -31,7 +33,7 @@ class BanksService {
   // GET BANK
   //==========
 
-  Future<List<dynamic>> getBanks() async {
+  Future<List<AccountModel>> getUserAccounts() async {
     try {
       final token = await _getTokenOrThrow();
 
@@ -40,9 +42,52 @@ class BanksService {
       final data = response['data'];
 
       if (data is List<dynamic>) {
-        return data;
+        return data.map((item) {
+          if (item is Map<String, dynamic>) {
+            return AccountModel.fromJson(item);
+          }
+
+          if (item is Map) {
+            return AccountModel.fromJson(Map<String, dynamic>.from(item));
+          }
+
+          throw BanksException('Resposta invalida da API.');
+        }).toList();
       }
-      throw BanksException('Resposta inválida da API');
+      throw BanksException('Resposta invalida da API.');
+    } on ApiException catch (e) {
+      throw BanksException(e.message);
+    } on BanksException {
+      rethrow;
+    } on FormatException {
+      throw BanksException('Resposta invalida da API.');
+    } catch (_) {
+      throw BanksException('Connection error with API.');
+    }
+  }
+
+  Future<List<AccountModel>> getBanks() async {
+    return getUserAccounts();
+  }
+
+  Future<double> getUserBalance() async {
+    try {
+      final token = await _getTokenOrThrow();
+      final response = await api.get('/user-balance', token: token);
+      final rawBalance = response['balance'];
+
+      if (rawBalance is num) {
+        return rawBalance.toDouble();
+      }
+
+      if (rawBalance is String) {
+        final parsed = double.tryParse(rawBalance.replaceAll(',', '.'));
+        if (parsed != null) {
+          return parsed;
+        }
+      }
+
+      throw BanksException('Resposta invalida da API.');
     } on ApiException catch (e) {
       throw BanksException(e.message);
     } on BanksException {
@@ -59,14 +104,19 @@ class BanksService {
   Future<void> createBank(Map<String, dynamic> body) async {
     try {
       final token = await _getTokenOrThrow();
+      final payload = _buildAccountPayload(body);
 
       await api.post(
         '/accounts',
-        body: body,
+        body: payload,
         token: token,
       );
+
+      BalanceRefreshNotifier.notifyChanged();
     } on ApiException catch (e) {
       throw BanksException(e.message);
+    } on BanksException {
+      rethrow;
     } catch (_) {
       throw BanksException('Connection error with API.');
     }
@@ -79,14 +129,19 @@ class BanksService {
   Future<void> updateBank(int id, Map<String, dynamic> body) async {
     try {
       final token = await _getTokenOrThrow();
+      final payload = _buildAccountPayload(body);
 
       await api.put(
         '/accounts/$id',
-        body: body,
+        body: payload,
         token: token,
       );
+
+      BalanceRefreshNotifier.notifyChanged();
     } on ApiException catch (e) {
       throw BanksException(e.message);
+    } on BanksException {
+      rethrow;
     } catch (_) {
       throw BanksException('Connection error with API.');
     }
@@ -104,10 +159,43 @@ class BanksService {
         '/accounts/$id',
         token: token,
       );
+
+      BalanceRefreshNotifier.notifyChanged();
     } on ApiException catch (e) {
       throw BanksException(e.message);
+    } on BanksException {
+      rethrow;
     } catch (_) {
       throw BanksException('Connection error with API.');
     }
+  }
+
+  Map<String, dynamic> _buildAccountPayload(
+    Map<String, dynamic> body,
+  ) {
+    final description = (body['description'] ?? '').toString().trim();
+    final balance = _parseBalance(body['balance']);
+
+    if (description.isEmpty) {
+      throw BanksException('Descricao da conta e obrigatoria.');
+    }
+
+    if (balance == null || balance < 0) {
+      throw BanksException('Saldo invalido.');
+    }
+
+    return {
+      'description': description,
+      'balance': balance,
+    };
+  }
+
+  double? _parseBalance(dynamic value) {
+    if (value is num) return value.toDouble();
+
+    final parsed = double.tryParse(
+      value?.toString().trim().replaceAll(',', '.') ?? '',
+    );
+    return parsed;
   }
 }

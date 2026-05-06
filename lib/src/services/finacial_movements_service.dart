@@ -1,5 +1,6 @@
 import 'api_client.dart';
 import 'auth_store.dart';
+import 'balance_refresh_notifier.dart';
 
 class FinancialMovementsException implements Exception {
   final String message;
@@ -114,6 +115,8 @@ class FinancialMovementsService {
         body: body,
         token: token,
       );
+
+      BalanceRefreshNotifier.notifyChanged();
     } on ApiException catch (e) {
       throw FinancialMovementsException(e.message);
     } on FinancialMovementsException {
@@ -137,6 +140,8 @@ class FinancialMovementsService {
         body: body,
         token: token,
       );
+
+      BalanceRefreshNotifier.notifyChanged();
     } on ApiException catch (e) {
       throw FinancialMovementsException(e.message);
     } catch (_) {
@@ -153,6 +158,8 @@ class FinancialMovementsService {
         '/financial-movements/$id',
         token: token,
       );
+
+      BalanceRefreshNotifier.notifyChanged();
     } on ApiException catch (e) {
       throw FinancialMovementsException(e.message);
     } catch (_) {
