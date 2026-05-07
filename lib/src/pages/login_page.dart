@@ -39,6 +39,7 @@ class _LoginPageState extends State<LoginPage> {
       );
 
       await AuthStore.setToken(result.token); //  <---- SALVA TOKEN PERSISTENTE
+      await AuthStore.setUserProfile(email: _emailController.text);
 
       if (!mounted) return;
 
@@ -95,7 +96,7 @@ class _LoginPageState extends State<LoginPage> {
                 constraints: const BoxConstraints(maxWidth: 420),
                 padding: const EdgeInsets.all(22),
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.95),
+                  color: Colors.white.withValues(alpha: 0.95),
                   borderRadius: BorderRadius.circular(24),
                 ),
                 child: Form(
@@ -210,9 +211,10 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 }
+
 @Preview(name: 'Login Page Preview')
 Widget previewLoginPage() {
   return const MaterialApp(
     home: LoginPage(),
   );
-} 
+}

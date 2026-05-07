@@ -3,8 +3,41 @@ import '../services/auth_store.dart';
 import '../widgets/profile_header.dart';
 import '../widgets/settings_tile.dart';
 
-class ProfilePage extends StatelessWidget {
+class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
+
+  @override
+  State<ProfilePage> createState() => _ProfilePageState();
+}
+
+class _ProfilePageState extends State<ProfilePage> {
+  String _name = '';
+  String _email = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUserProfile();
+  }
+
+  Future<void> _loadUserProfile() async {
+    try {
+      final profile = await AuthStore.getUserProfile();
+      if (!mounted) return;
+
+      setState(() {
+        _name = profile.name;
+        _email = profile.email;
+      });
+    } catch (_) {
+      if (!mounted) return;
+
+      setState(() {
+        _name = '';
+        _email = '';
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -13,7 +46,10 @@ class ProfilePage extends StatelessWidget {
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
-            const ProfileHeader(),
+            ProfileHeader(
+              name: _name,
+              email: _email,
+            ),
             const SizedBox(height: 24),
             Text('Configurações',
                 style: Theme.of(context)

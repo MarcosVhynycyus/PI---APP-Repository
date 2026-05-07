@@ -7,7 +7,7 @@ class RecentTransactionsList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final items = const [
+    const items = [
       ('Mercado', 'NuBank', '- R\$ 70,00', Color(0xFFE85A5A)),
       ('Freela', 'Inter', '+ R\$ 900,00', Color(0xFF00A889)),
       ('Cinema', 'Mercado Pago', '- R\$ 45,00', Color(0xFFE85A5A)),
