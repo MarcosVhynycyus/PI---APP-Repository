@@ -23,7 +23,7 @@ class TransactionTile extends StatelessWidget {
         borderRadius: BorderRadius.circular(18),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -34,14 +34,26 @@ class TransactionTile extends StatelessWidget {
           CircleAvatar(
             radius: 24,
             backgroundColor: const Color(0xFFF1E8FF),
-            child: Text(title.substring(0, 1), style: const TextStyle(color: Color(0xFF5B1FA6), fontWeight: FontWeight.bold)),
+            child: Text(
+              title.substring(0, 1),
+              style: const TextStyle(
+                color: Color(0xFF5B1FA6),
+                fontWeight: FontWeight.bold,
+              ),
+            ),
           ),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                  ),
+                ),
                 const SizedBox(height: 4),
                 Text(subtitle, style: const TextStyle(color: Colors.black54)),
               ],

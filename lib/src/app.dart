@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 
+import 'pages/account_plans_page.dart';
 import 'pages/login_page.dart';
 import 'pages/main_navigation.dart';
+import 'services/auth_store.dart';
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
@@ -23,7 +25,8 @@ class MyApp extends StatelessWidget {
         inputDecorationTheme: InputDecorationTheme(
           filled: true,
           fillColor: Colors.white,
-          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          contentPadding:
+              const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(14),
             borderSide: BorderSide.none,
@@ -38,11 +41,58 @@ class MyApp extends StatelessWidget {
           ),
         ),
       ),
-      initialRoute: '/',
+      home: const SessionGate(),
       routes: {
-        '/': (_) => const LoginPage(),
+        '/login': (_) => const LoginPage(),
         '/main': (_) => const MainNavigation(),
+        '/account-plans': (_) => const AccountPlansPage(),
       },
     );
+  }
+}
+
+class SessionGate extends StatefulWidget {
+  const SessionGate({super.key});
+
+  @override
+  State<SessionGate> createState() => _SessionGateState();
+}
+
+class _SessionGateState extends State<SessionGate> {
+  bool _isLoading = true;
+  bool _isAuthenticated = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkSession();
+  }
+
+  Future<void> _checkSession() async {
+    final token = await AuthStore.getToken();
+
+    if (!mounted) return;
+
+    setState(() {
+      _isAuthenticated = token != null && token.isNotEmpty;
+      _isLoading = false;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const Scaffold(
+        body: Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
+    }
+
+    if (_isAuthenticated) {
+      return const MainNavigation();
+    }
+
+    return const LoginPage();
   }
 }

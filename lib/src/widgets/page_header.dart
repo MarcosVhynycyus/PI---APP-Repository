@@ -5,8 +5,27 @@ import 'app_logo.dart';
 class PageHeader extends StatelessWidget {
   final String title;
   final bool showLogo;
+  final VoidCallback? onLogoTap;
+  final VoidCallback? onNotificationTap;
+  final VoidCallback? onSearchTap;
+  final String? userInitial;
 
-  const PageHeader({super.key, required this.title, this.showLogo = false});
+  const PageHeader({
+    super.key,
+    required this.title,
+    this.showLogo = false,
+    this.onLogoTap,
+    this.onNotificationTap,
+    this.onSearchTap,
+    this.userInitial,
+  });
+
+  String get _avatarInitial {
+    final trimmedInitial = userInitial?.trim() ?? '';
+    if (trimmedInitial.isEmpty) return 'U';
+
+    return trimmedInitial.substring(0, 1).toUpperCase();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -25,12 +44,7 @@ class PageHeader extends StatelessWidget {
       ),
       child: Row(
         children: [
-          if (showLogo)
-            InkWell(
-              onTap: () => Navigator.pushReplacementNamed(context, '/'),
-              child: const AppLogo(),
-              )
-            ,
+          if (showLogo) _buildLogo(),
           if (showLogo) const SizedBox(width: 12),
           Expanded(
             child: Text(
@@ -42,14 +56,45 @@ class PageHeader extends StatelessWidget {
               ),
             ),
           ),
-          IconButton(onPressed: () {}, icon: const Icon(Icons.notifications_none, color: Colors.white)),
-          IconButton(onPressed: () {}, icon: const Icon(Icons.search, color: Colors.white)),
-          const CircleAvatar(
+          if (onNotificationTap != null)
+            IconButton(
+              tooltip: 'Notificações',
+              onPressed: onNotificationTap,
+              icon: const Icon(
+                Icons.notifications_none,
+                color: Colors.white,
+              ),
+            ),
+          if (onSearchTap != null)
+            IconButton(
+              tooltip: 'Buscar',
+              onPressed: onSearchTap,
+              icon: const Icon(Icons.search, color: Colors.white),
+            ),
+          CircleAvatar(
             backgroundColor: Colors.white,
-            child: Text('A', style: TextStyle(color: Color(0xFF241136), fontWeight: FontWeight.bold)),
+            child: Text(
+              _avatarInitial,
+              style: const TextStyle(
+                color: Color(0xFF241136),
+                fontWeight: FontWeight.bold,
+              ),
+            ),
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildLogo() {
+    const logo = AppLogo();
+
+    if (onLogoTap == null) return logo;
+
+    return InkWell(
+      borderRadius: BorderRadius.circular(24),
+      onTap: onLogoTap,
+      child: logo,
     );
   }
 }

@@ -15,13 +15,17 @@ class AppLogo extends StatelessWidget {
         color: Colors.white,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.12),
+            color: Colors.black.withValues(alpha: 0.12),
             blurRadius: 12,
             offset: const Offset(0, 4),
           ),
         ],
       ),
-      child: const Icon(Icons.monetization_on, color: Color(0xFF5B1FA6), size: 28),
+      child: const Icon(
+        Icons.monetization_on,
+        color: Color(0xFF5B1FA6),
+        size: 28,
+      ),
     );
   }
 }

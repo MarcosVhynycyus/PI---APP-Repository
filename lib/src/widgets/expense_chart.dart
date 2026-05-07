@@ -5,7 +5,7 @@ class ExpenseChart extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final bars = [0.45, 0.72, 0.55, 0.88, 0.60, 0.34, 0.67];
+    const bars = [0.45, 0.72, 0.55, 0.88, 0.60, 0.34, 0.67];
 
     return Container(
       padding: const EdgeInsets.all(18),
@@ -14,7 +14,7 @@ class ExpenseChart extends StatelessWidget {
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -23,7 +23,10 @@ class ExpenseChart extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('Resumo mensal', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+          const Text(
+            'Resumo mensal',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          ),
           const SizedBox(height: 16),
           SizedBox(
             height: 140,

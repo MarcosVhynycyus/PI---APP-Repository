@@ -4,22 +4,38 @@ import '../widgets/transaction_tile.dart';
 import '../widgets/transactions_filter_bar.dart';
 
 class TransactionsPage extends StatelessWidget {
-  const TransactionsPage({super.key});
+  const TransactionsPage({
+    super.key,
+    this.onLogoTap,
+    this.userInitial,
+  });
+
+  final VoidCallback? onLogoTap;
+  final String? userInitial;
 
   @override
   Widget build(BuildContext context) {
     final items = [
-      const _TransactionData('McDonald’s', 'NuBank', '- R\$ 50,00', Color(0xFFE85A5A)),
-      const _TransactionData('Salário', 'Mercado Pago', '+ R\$ 6500,00', Color(0xFF00A889)),
-      const _TransactionData('Uber', 'NuBank', '- R\$ 17,00', Color(0xFFE85A5A)),
-      const _TransactionData('Mercado', 'Inter', '- R\$ 775,00', Color(0xFFE85A5A)),
+      const _TransactionData(
+          'McDonald’s', 'NuBank', '- R\$ 50,00', Color(0xFFE85A5A)),
+      const _TransactionData(
+          'Salário', 'Mercado Pago', '+ R\$ 6500,00', Color(0xFF00A889)),
+      const _TransactionData(
+          'Uber', 'NuBank', '- R\$ 17,00', Color(0xFFE85A5A)),
+      const _TransactionData(
+          'Mercado', 'Inter', '- R\$ 775,00', Color(0xFFE85A5A)),
     ];
 
     return Scaffold(
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const PageHeader(title: "Transações", showLogo: true,),
+          PageHeader(
+            title: 'Transações',
+            showLogo: true,
+            onLogoTap: onLogoTap,
+            userInitial: userInitial,
+          ),
           const TransactionsFilterBar(),
           Expanded(
             child: ListView.builder(
@@ -51,5 +67,6 @@ class _TransactionData {
   final String amount;
   final Color amountColor;
 
-  const _TransactionData(this.title, this.subtitle, this.amount, this.amountColor);
+  const _TransactionData(
+      this.title, this.subtitle, this.amount, this.amountColor);
 }

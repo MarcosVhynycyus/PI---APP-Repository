@@ -1,4 +1,6 @@
+import 'dart:async';
 import 'dart:convert';
+
 import 'package:http/http.dart' as http;
 
 import '../config/env.dart';
@@ -16,16 +18,22 @@ class ApiException implements Exception {
 class ApiClient {
   final String baseUrl;
 
-  ApiClient({String? baseUrl})
-      : baseUrl = baseUrl ?? Env.apiBaseUrl;
+  ApiClient({String? baseUrl}) : baseUrl = baseUrl ?? Env.apiBaseUrl;
 
   // =========================
-  // HEADERS PADRÃO
+  // HEADERS PADRAO
   // =========================
-  Map<String, String> _buildHeaders({String? token}) {
-    final headers = {
-      'Content-Type': 'application/json',
+  Map<String, String> _buildHeaders({
+    String? token,
+    bool includeJsonContentType = false,
+  }) {
+    final headers = <String, String>{
+      'Accept': 'application/json',
     };
+
+    if (includeJsonContentType) {
+      headers['Content-Type'] = 'application/json';
+    }
 
     if (token != null) {
       headers['Authorization'] = 'Bearer $token';
@@ -39,14 +47,22 @@ class ApiClient {
   // =========================
   Future<dynamic> get(String path, {String? token}) async {
     try {
-      final response = await http.get(
-        Uri.parse('$baseUrl$path'),
-        headers: _buildHeaders(token: token),
-      );
+      final response = await http
+          .get(
+            Uri.parse('$baseUrl$path'),
+            headers: _buildHeaders(token: token),
+          )
+          .timeout(const Duration(seconds: 30));
 
       return _handleResponse(response);
-    } catch (e) {
-      throw ApiException('Erro de conexão com o servidor.');
+    } on ApiException {
+      rethrow;
+    } on TimeoutException {
+      throw ApiException('Tempo de resposta da API esgotado.');
+    } on http.ClientException {
+      throw ApiException('Erro de conexao com o servidor.');
+    } catch (_) {
+      throw ApiException('Erro de conexao com o servidor.');
     }
   }
 
@@ -59,15 +75,26 @@ class ApiClient {
     String? token,
   }) async {
     try {
-      final response = await http.post(
-        Uri.parse('$baseUrl$path'),
-        headers: _buildHeaders(token: token),
-        body: jsonEncode(body ?? {}),
-      );
+      final response = await http
+          .post(
+            Uri.parse('$baseUrl$path'),
+            headers: _buildHeaders(
+              token: token,
+              includeJsonContentType: true,
+            ),
+            body: jsonEncode(body ?? {}),
+          )
+          .timeout(const Duration(seconds: 30));
 
       return _handleResponse(response);
-    } catch (e) {
-      throw ApiException('Erro de conexão com o servidor.');
+    } on ApiException {
+      rethrow;
+    } on TimeoutException {
+      throw ApiException('Tempo de resposta da API esgotado.');
+    } on http.ClientException {
+      throw ApiException('Erro de conexao com o servidor.');
+    } catch (_) {
+      throw ApiException('Erro de conexao com o servidor.');
     }
   }
 
@@ -80,15 +107,26 @@ class ApiClient {
     String? token,
   }) async {
     try {
-      final response = await http.put(
-        Uri.parse('$baseUrl$path'),
-        headers: _buildHeaders(token: token),
-        body: jsonEncode(body ?? {}),
-      );
+      final response = await http
+          .put(
+            Uri.parse('$baseUrl$path'),
+            headers: _buildHeaders(
+              token: token,
+              includeJsonContentType: true,
+            ),
+            body: jsonEncode(body ?? {}),
+          )
+          .timeout(const Duration(seconds: 30));
 
       return _handleResponse(response);
-    } catch (e) {
-      throw ApiException('Erro de conexão com o servidor.');
+    } on ApiException {
+      rethrow;
+    } on TimeoutException {
+      throw ApiException('Tempo de resposta da API esgotado.');
+    } on http.ClientException {
+      throw ApiException('Erro de conexao com o servidor.');
+    } catch (_) {
+      throw ApiException('Erro de conexao com o servidor.');
     }
   }
 
@@ -97,14 +135,22 @@ class ApiClient {
   // =========================
   Future<dynamic> delete(String path, {String? token}) async {
     try {
-      final response = await http.delete(
-        Uri.parse('$baseUrl$path'),
-        headers: _buildHeaders(token: token),
-      );
+      final response = await http
+          .delete(
+            Uri.parse('$baseUrl$path'),
+            headers: _buildHeaders(token: token),
+          )
+          .timeout(const Duration(seconds: 30));
 
       return _handleResponse(response);
-    } catch (e) {
-      throw ApiException('Erro de conexão com o servidor.');
+    } on ApiException {
+      rethrow;
+    } on TimeoutException {
+      throw ApiException('Tempo de resposta da API esgotado.');
+    } on http.ClientException {
+      throw ApiException('Erro de conexao com o servidor.');
+    } catch (_) {
+      throw ApiException('Erro de conexao com o servidor.');
     }
   }
 
@@ -112,13 +158,15 @@ class ApiClient {
   // TRATAMENTO DE RESPOSTA
   // =========================
   dynamic _handleResponse(http.Response response) {
-    dynamic decodedBody;
+    dynamic decodedBody = {};
 
-    try {
-      decodedBody =
-          response.body.isNotEmpty ? jsonDecode(response.body) : {};
-    } catch (_) {
-      throw ApiException('Erro ao processar resposta do servidor.');
+    if (response.body.isNotEmpty) {
+      try {
+        decodedBody = jsonDecode(response.body);
+      } catch (_) {
+        // Compatibilidade para respostas textuais.
+        decodedBody = {'message': response.body};
+      }
     }
 
     switch (response.statusCode) {
@@ -130,11 +178,15 @@ class ApiClient {
         return null;
 
       case 400:
+      case 401:
+      case 403:
       case 404:
       case 409:
+      case 422:
       case 500:
-        final message =
-            decodedBody['message'] ?? 'Erro desconhecido.';
+        final message = decodedBody is Map
+            ? decodedBody['message']?.toString() ?? 'Erro desconhecido.'
+            : 'Erro desconhecido.';
         throw ApiException(message, statusCode: response.statusCode);
 
       default:
