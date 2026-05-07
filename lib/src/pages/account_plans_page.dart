@@ -1,11 +1,19 @@
 import 'package:flutter/material.dart';
 import '../models/account_plan_model.dart';
 import '../services/account_plans_service.dart';
+import '../services/auth_store.dart';
 import '../widgets/account_plan_card.dart';
 import '../widgets/page_header.dart';
 
 class AccountPlansPage extends StatefulWidget {
-  const AccountPlansPage({super.key});
+  const AccountPlansPage({
+    super.key,
+    this.onLogoTap,
+    this.userInitial,
+  });
+
+  final VoidCallback? onLogoTap;
+  final String? userInitial;
 
   @override
   State<AccountPlansPage> createState() => _AccountPlansPageState();
@@ -18,11 +26,49 @@ class _AccountPlansPageState extends State<AccountPlansPage> {
   bool _isLoading = true;
   bool _isMutating = false;
   String? _error;
+  String? _loadedUserInitial;
+
+  String? get _headerUserInitial {
+    final widgetInitial = widget.userInitial?.trim();
+    if (widgetInitial != null && widgetInitial.isNotEmpty) {
+      return widgetInitial;
+    }
+
+    return _loadedUserInitial;
+  }
 
   @override
   void initState() {
     super.initState();
+    _loadUserInitial();
     _loadAccountPlans();
+  }
+
+  Future<void> _loadUserInitial() async {
+    if (widget.userInitial?.trim().isNotEmpty ?? false) return;
+
+    try {
+      final profile = await AuthStore.getUserProfile();
+      if (!mounted) return;
+
+      setState(() {
+        _loadedUserInitial = profile.initial;
+      });
+    } catch (_) {
+      if (!mounted) return;
+
+      setState(() {
+        _loadedUserInitial = null;
+      });
+    }
+  }
+
+  void _goToMain() {
+    Navigator.pushNamedAndRemoveUntil(
+      context,
+      '/main',
+      (route) => false,
+    );
   }
 
   Future<void> _loadAccountPlans({bool showLoader = true}) async {
@@ -209,9 +255,11 @@ class _AccountPlansPageState extends State<AccountPlansPage> {
             ignoring: _isMutating,
             child: Column(
               children: [
-                const PageHeader(
+                PageHeader(
                   title: 'Planos de conta',
                   showLogo: true,
+                  onLogoTap: widget.onLogoTap ?? _goToMain,
+                  userInitial: _headerUserInitial,
                 ),
                 Expanded(
                   child: _buildContent(),

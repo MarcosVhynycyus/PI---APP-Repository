@@ -5,7 +5,14 @@ import '../widgets/page_header.dart';
 import '../widgets/bank_account_card.dart';
 
 class BanksPage extends StatefulWidget {
-  const BanksPage({super.key});
+  const BanksPage({
+    super.key,
+    this.onLogoTap,
+    this.userInitial,
+  });
+
+  final VoidCallback? onLogoTap;
+  final String? userInitial;
 
   @override
   State<BanksPage> createState() => _BanksPageState();
@@ -275,9 +282,11 @@ class _BanksPageState extends State<BanksPage> {
       body: Column(
         mainAxisAlignment: MainAxisAlignment.start,
         children: [
-          const PageHeader(
+          PageHeader(
             title: 'Bancos',
             showLogo: true,
+            onLogoTap: widget.onLogoTap,
+            userInitial: widget.userInitial,
           ),
           Expanded(
             child: _buildContent(),

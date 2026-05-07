@@ -10,6 +10,16 @@ class AuthUserProfile {
 
   final String name;
   final String email;
+
+  String get initial {
+    final trimmedName = name.trim();
+    final trimmedEmail = email.trim();
+    final source = trimmedName.isNotEmpty ? trimmedName : trimmedEmail;
+
+    if (source.isEmpty) return '';
+
+    return source.substring(0, 1).toUpperCase();
+  }
 }
 
 class AuthStore {

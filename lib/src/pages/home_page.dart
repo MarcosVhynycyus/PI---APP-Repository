@@ -10,7 +10,14 @@ import '../widgets/section_header.dart';
 import '../widgets/summary_card.dart';
 
 class HomePage extends StatefulWidget {
-  const HomePage({super.key});
+  const HomePage({
+    super.key,
+    this.onLogoTap,
+    this.userInitial,
+  });
+
+  final VoidCallback? onLogoTap;
+  final String? userInitial;
 
   @override
   State<HomePage> createState() => _HomePageState();
@@ -120,7 +127,12 @@ class _HomePageState extends State<HomePage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const PageHeader(title: 'Home', showLogo: true),
+              PageHeader(
+                title: 'Home',
+                showLogo: true,
+                onLogoTap: widget.onLogoTap,
+                userInitial: widget.userInitial,
+              ),
               Padding(
                 padding: const EdgeInsets.all(16),
                 child: Column(

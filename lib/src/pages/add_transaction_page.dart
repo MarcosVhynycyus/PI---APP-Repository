@@ -11,7 +11,14 @@ import '../widgets/selector_field.dart';
 import '../widgets/transaction_type_selector.dart';
 
 class AddTransactionPage extends StatefulWidget {
-  const AddTransactionPage({super.key});
+  const AddTransactionPage({
+    super.key,
+    this.onLogoTap,
+    this.userInitial,
+  });
+
+  final VoidCallback? onLogoTap;
+  final String? userInitial;
 
   @override
   State<AddTransactionPage> createState() => _AddTransactionPageState();
@@ -574,9 +581,11 @@ class _AddTransactionPageState extends State<AddTransactionPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const PageHeader(
+            PageHeader(
               title: 'Transações',
               showLogo: true,
+              onLogoTap: widget.onLogoTap,
+              userInitial: widget.userInitial,
             ),
             const SizedBox(height: 8),
             Padding(
