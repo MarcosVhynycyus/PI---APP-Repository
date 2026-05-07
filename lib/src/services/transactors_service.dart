@@ -1,5 +1,6 @@
 import 'api_client.dart';
 import 'auth_store.dart';
+import '../models/transactor_model.dart';
 
 class TransactorsException implements Exception {
   final String message;
@@ -27,7 +28,7 @@ class TransactorsService {
     return token;
   }
 
-  Future<List<dynamic>> getTransactors() async {
+  Future<List<TransactorModel>> getTransactors() async {
     try {
       final token = await _getTokenOrThrow();
       final response = await api.get(
@@ -38,7 +39,17 @@ class TransactorsService {
       final data = response['data'];
 
       if (data is List<dynamic>) {
-        return data;
+        return data.map((item) {
+          if (item is Map<String, dynamic>) {
+            return TransactorModel.fromJson(item);
+          }
+
+          if (item is Map) {
+            return TransactorModel.fromJson(Map<String, dynamic>.from(item));
+          }
+
+          throw TransactorsException('Resposta invalida da API.');
+        }).toList();
       }
 
       throw TransactorsException('Resposta invalida da API.');
@@ -46,6 +57,8 @@ class TransactorsService {
       throw TransactorsException(e.message);
     } on TransactorsException {
       rethrow;
+    } on FormatException {
+      throw TransactorsException('Resposta invalida da API.');
     } catch (_) {
       throw TransactorsException(
         'Connection error with API.',
@@ -53,7 +66,7 @@ class TransactorsService {
     }
   }
 
-  Future<List<dynamic>> getUserTransactors() async {
+  Future<List<TransactorModel>> getUserTransactors() async {
     try {
       final token = await _getTokenOrThrow();
       final response = await api.get(
@@ -64,7 +77,17 @@ class TransactorsService {
       final data = response['data'];
 
       if (data is List<dynamic>) {
-        return data;
+        return data.map((item) {
+          if (item is Map<String, dynamic>) {
+            return TransactorModel.fromJson(item);
+          }
+
+          if (item is Map) {
+            return TransactorModel.fromJson(Map<String, dynamic>.from(item));
+          }
+
+          throw TransactorsException('Resposta invalida da API.');
+        }).toList();
       }
 
       throw TransactorsException(
@@ -74,6 +97,8 @@ class TransactorsService {
       throw TransactorsException(e.message);
     } on TransactorsException {
       rethrow;
+    } on FormatException {
+      throw TransactorsException('Resposta invalida da API.');
     } catch (_) {
       throw TransactorsException(
         'Connection error with API',

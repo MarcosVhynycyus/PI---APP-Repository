@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
+import '../models/account_model.dart';
 import '../models/account_plan_model.dart';
+import '../models/transactor_model.dart';
 import '../services/account_plans_service.dart';
+import '../services/banks_service.dart';
+import '../services/transactors_service.dart';
 import '../widgets/page_header.dart';
 import '../widgets/date_picker_field.dart';
 import '../widgets/selector_field.dart';
@@ -14,17 +18,60 @@ class AddTransactionPage extends StatefulWidget {
 }
 
 class _AddTransactionPageState extends State<AddTransactionPage> {
+  static const _paidSituationId = 2;
+
+  static const _paymentMethods = [
+    _SelectionOption(1, 'Pix'),
+    _SelectionOption(2, 'Boleto'),
+    _SelectionOption(3, 'Dinheiro'),
+    _SelectionOption(4, 'Cartão de crédito'),
+    _SelectionOption(5, 'Cartão de débito'),
+  ];
+
+  static const _situations = [
+    _SelectionOption(1, 'Em aberto'),
+    _SelectionOption(_paidSituationId, 'Quitada'),
+    _SelectionOption(3, 'Vencida'),
+  ];
+
+  final _formKey = GlobalKey<FormState>();
+  final _valueController = TextEditingController();
+  final _descriptionController = TextEditingController();
   final _accountPlansService = AccountPlansService();
+  final _banksService = BanksService();
+  final _transactorsService = TransactorsService();
 
   bool _isLoadingCategories = true;
   String? _categoriesError;
   List<AccountPlanModel> _categories = [];
   int? _selectedCategoryId;
 
+  bool _isLoadingAccounts = true;
+  String? _accountsError;
+  List<AccountModel> _accounts = [];
+  int? _selectedAccountId;
+
+  bool _isLoadingTransactors = true;
+  String? _transactorsError;
+  List<TransactorModel> _transactors = [];
+  int? _selectedTransactorId;
+
+  int? _selectedPaymentMethodId;
+  int? _selectedSituationId;
+
   @override
   void initState() {
     super.initState();
     _loadCategories();
+    _loadAccounts();
+    _loadTransactors();
+  }
+
+  @override
+  void dispose() {
+    _valueController.dispose();
+    _descriptionController.dispose();
+    super.dispose();
   }
 
   Future<void> _loadCategories() async {
@@ -39,8 +86,10 @@ class _AddTransactionPageState extends State<AddTransactionPage> {
 
       setState(() {
         _categories = categories;
-        _selectedCategoryId = categories.isNotEmpty
-            ? (_selectedCategoryId ?? categories.first.idAccountPlan)
+        _selectedCategoryId = categories.any(
+          (category) => category.idAccountPlan == _selectedCategoryId,
+        )
+            ? _selectedCategoryId
             : null;
         _isLoadingCategories = false;
       });
@@ -59,152 +108,544 @@ class _AddTransactionPageState extends State<AddTransactionPage> {
     }
   }
 
-  Widget _buildCategoryField() {
-    if (_isLoadingCategories) {
-      return const Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text('Categoria', style: TextStyle(fontWeight: FontWeight.w600)),
-          SizedBox(height: 8),
-          LinearProgressIndicator(),
-        ],
-      );
-    }
+  Future<void> _loadAccounts() async {
+    setState(() {
+      _isLoadingAccounts = true;
+      _accountsError = null;
+    });
 
-    if (_categoriesError != null) {
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text('Categoria',
-              style: TextStyle(fontWeight: FontWeight.w600)),
-          const SizedBox(height: 8),
-          Text(
-            _categoriesError!,
-            style: const TextStyle(color: Colors.red),
-          ),
-          const SizedBox(height: 8),
-          OutlinedButton(
-            onPressed: _loadCategories,
-            child: const Text('Tentar novamente'),
-          ),
-        ],
-      );
-    }
+    try {
+      final accounts = await _banksService.getUserAccounts();
+      if (!mounted) return;
 
-    if (_categories.isEmpty) {
-      return const Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text('Categoria', style: TextStyle(fontWeight: FontWeight.w600)),
-          SizedBox(height: 8),
-          Text('Nenhuma categoria encontrada.'),
-        ],
-      );
+      setState(() {
+        _accounts = accounts;
+        _selectedAccountId =
+            accounts.any((account) => account.idAccount == _selectedAccountId)
+                ? _selectedAccountId
+                : null;
+        _isLoadingAccounts = false;
+      });
+    } on BanksException catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _accountsError = e.message;
+        _isLoadingAccounts = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _accountsError = 'Erro ao carregar contas.';
+        _isLoadingAccounts = false;
+      });
     }
+  }
 
-    return DropdownButtonFormField<int>(
-      initialValue: _selectedCategoryId,
-      decoration: const InputDecoration(
-        labelText: 'Categoria',
-        prefixIcon: Icon(Icons.category_outlined),
-      ),
-      items: _categories
-          .map(
-            (category) => DropdownMenuItem<int>(
-              value: category.idAccountPlan,
-              child: Text(category.description),
+  Future<void> _loadTransactors() async {
+    setState(() {
+      _isLoadingTransactors = true;
+      _transactorsError = null;
+    });
+
+    try {
+      final transactors = await _transactorsService.getUserTransactors();
+      if (!mounted) return;
+
+      setState(() {
+        _transactors = transactors;
+        _selectedTransactorId = transactors.any(
+          (transactor) => transactor.idTransactor == _selectedTransactorId,
+        )
+            ? _selectedTransactorId
+            : null;
+        _isLoadingTransactors = false;
+      });
+    } on TransactorsException catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _transactorsError = e.message;
+        _isLoadingTransactors = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _transactorsError = 'Erro ao carregar transatores.';
+        _isLoadingTransactors = false;
+      });
+    }
+  }
+
+  List<_SelectionOption<int>> get _categoryOptions => _categories
+      .map(
+        (category) => _SelectionOption(
+          category.idAccountPlan,
+          category.description,
+        ),
+      )
+      .toList();
+
+  List<_SelectionOption<int>> get _accountOptions => _accounts
+      .map(
+        (account) => _SelectionOption(
+          account.idAccount,
+          account.description,
+        ),
+      )
+      .toList();
+
+  List<_SelectionOption<int>> get _transactorOptions => _transactors
+      .map(
+        (transactor) => _SelectionOption(
+          transactor.idTransactor,
+          transactor.name,
+        ),
+      )
+      .toList();
+
+  String? get _selectedCategoryLabel =>
+      _selectedLabel(_categoryOptions, _selectedCategoryId);
+
+  String? get _selectedAccountLabel =>
+      _selectedLabel(_accountOptions, _selectedAccountId);
+
+  String? get _selectedTransactorLabel =>
+      _selectedLabel(_transactorOptions, _selectedTransactorId);
+
+  String? get _selectedPaymentMethodLabel =>
+      _selectedLabel(_paymentMethods, _selectedPaymentMethodId);
+
+  String? get _selectedSituationLabel =>
+      _selectedLabel(_situations, _selectedSituationId);
+
+  Future<void> _selectCategory() async {
+    final selected = await _showSelectionSheet<int>(
+      title: 'Selecionar categoria',
+      options: _categoryOptions,
+      selectedValue: _selectedCategoryId,
+    );
+
+    if (!mounted || selected == null) return;
+    setState(() {
+      _selectedCategoryId = selected;
+    });
+  }
+
+  Future<void> _selectAccount() async {
+    final selected = await _showSelectionSheet<int>(
+      title: 'Selecionar conta bancária',
+      options: _accountOptions,
+      selectedValue: _selectedAccountId,
+    );
+
+    if (!mounted || selected == null) return;
+    setState(() {
+      _selectedAccountId = selected;
+    });
+  }
+
+  Future<void> _selectTransactor() async {
+    final selected = await _showSelectionSheet<int>(
+      title: 'Selecionar transator',
+      options: _transactorOptions,
+      selectedValue: _selectedTransactorId,
+    );
+
+    if (!mounted || selected == null) return;
+    setState(() {
+      _selectedTransactorId = selected;
+    });
+  }
+
+  Future<void> _selectPaymentMethod() async {
+    final selected = await _showSelectionSheet<int>(
+      title: 'Selecionar forma de pagamento',
+      options: _paymentMethods,
+      selectedValue: _selectedPaymentMethodId,
+    );
+
+    if (!mounted || selected == null) return;
+    setState(() {
+      _selectedPaymentMethodId = selected;
+    });
+  }
+
+  Future<void> _selectSituation() async {
+    final selected = await _showSelectionSheet<int>(
+      title: 'Selecionar situação',
+      options: _situations,
+      selectedValue: _selectedSituationId,
+    );
+
+    if (!mounted || selected == null) return;
+    setState(() {
+      _selectedSituationId = selected;
+    });
+  }
+
+  Future<T?> _showSelectionSheet<T>({
+    required String title,
+    required List<_SelectionOption<T>> options,
+    required T? selectedValue,
+  }) {
+    return showModalBottomSheet<T>(
+      context: context,
+      showDragHandle: true,
+      builder: (context) {
+        final theme = Theme.of(context);
+
+        return SafeArea(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              maxHeight: MediaQuery.of(context).size.height * 0.72,
             ),
-          )
-          .toList(),
-      onChanged: (value) {
-        setState(() {
-          _selectedCategoryId = value;
-        });
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
+                  child: Text(
+                    title,
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+                Flexible(
+                  child: ListView.separated(
+                    shrinkWrap: true,
+                    itemCount: options.length,
+                    separatorBuilder: (_, __) => const Divider(height: 1),
+                    itemBuilder: (context, index) {
+                      final option = options[index];
+                      final isSelected = option.value == selectedValue;
+
+                      return ListTile(
+                        title: Text(option.label),
+                        trailing: isSelected
+                            ? const Icon(
+                                Icons.check,
+                                color: Color(0xFF5B1FA6),
+                              )
+                            : null,
+                        onTap: () => Navigator.of(context).pop(option.value),
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
       },
     );
+  }
+
+  Widget _buildCategoryField() {
+    return _buildRemoteSelectorField(
+      label: 'Categoria',
+      hint: 'Selecione uma categoria',
+      icon: Icons.category_outlined,
+      value: _selectedCategoryLabel,
+      onTap: _selectCategory,
+      isLoading: _isLoadingCategories,
+      error: _categoriesError,
+      isEmpty: _categories.isEmpty,
+      emptyMessage: 'Nenhuma categoria encontrada.',
+      onRetry: _loadCategories,
+    );
+  }
+
+  Widget _buildAccountField() {
+    return _buildRemoteSelectorField(
+      label: 'Conta bancária',
+      hint: 'Selecione uma conta',
+      icon: Icons.account_balance_wallet_outlined,
+      value: _selectedAccountLabel,
+      onTap: _selectAccount,
+      isLoading: _isLoadingAccounts,
+      error: _accountsError,
+      isEmpty: _accounts.isEmpty,
+      emptyMessage: 'Nenhuma conta encontrada.',
+      onRetry: _loadAccounts,
+    );
+  }
+
+  Widget _buildTransactorField() {
+    return _buildRemoteSelectorField(
+      label: 'Transator',
+      hint: 'Selecione um transator',
+      icon: Icons.person_outline,
+      value: _selectedTransactorLabel,
+      onTap: _selectTransactor,
+      isLoading: _isLoadingTransactors,
+      error: _transactorsError,
+      isEmpty: _transactors.isEmpty,
+      emptyMessage: 'Nenhum transator encontrado.',
+      onRetry: _loadTransactors,
+    );
+  }
+
+  Widget _buildPaymentMethodField() {
+    return SelectorField(
+      label: 'Forma de pagamento',
+      hint: 'Selecione a forma de pagamento',
+      icon: Icons.payments_outlined,
+      value: _selectedPaymentMethodLabel,
+      onTap: _selectPaymentMethod,
+    );
+  }
+
+  Widget _buildSituationField() {
+    return SelectorField(
+      label: 'Situação',
+      hint: 'Selecione a situação',
+      icon: Icons.flag_outlined,
+      value: _selectedSituationLabel,
+      onTap: _selectSituation,
+    );
+  }
+
+  Widget _buildRemoteSelectorField({
+    required String label,
+    required String hint,
+    required IconData icon,
+    required String? value,
+    required VoidCallback onTap,
+    required bool isLoading,
+    required String? error,
+    required bool isEmpty,
+    required String emptyMessage,
+    required VoidCallback onRetry,
+  }) {
+    if (isLoading) {
+      return _SelectionFieldState(
+        label: label,
+        child: const LinearProgressIndicator(),
+      );
+    }
+
+    if (error != null) {
+      return _SelectionFieldState(
+        label: label,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(error, style: const TextStyle(color: Colors.red)),
+            const SizedBox(height: 8),
+            OutlinedButton(
+              onPressed: onRetry,
+              child: const Text('Tentar novamente'),
+            ),
+          ],
+        ),
+      );
+    }
+
+    if (isEmpty) {
+      return _SelectionFieldState(
+        label: label,
+        child: Text(emptyMessage),
+      );
+    }
+
+    return SelectorField(
+      label: label,
+      hint: hint,
+      icon: icon,
+      value: value,
+      onTap: onTap,
+    );
+  }
+
+  String? _selectedLabel<T>(
+    List<_SelectionOption<T>> options,
+    T? selectedValue,
+  ) {
+    if (selectedValue == null) return null;
+
+    for (final option in options) {
+      if (option.value == selectedValue) {
+        return option.label;
+      }
+    }
+
+    return null;
+  }
+
+  void _handleSave() {
+    final missingFields = <String>[];
+
+    if (_selectedCategoryId == null) missingFields.add('categoria');
+    if (_selectedAccountId == null) missingFields.add('conta bancária');
+    if (_selectedTransactorId == null) missingFields.add('transator');
+    if (_selectedPaymentMethodId == null) {
+      missingFields.add('forma de pagamento');
+    }
+    if (_selectedSituationId == null) missingFields.add('situação');
+
+    if (missingFields.isNotEmpty) {
+      _showSnackBar('Selecione ${_formatMissingFields(missingFields)}.');
+      return;
+    }
+
+    if (_selectedSituationId == _paidSituationId) {
+      _showSnackBar(
+        'Informe a data de pagamento para marcar a movimentação como quitada.',
+      );
+      return;
+    }
+
+    final formState = _formKey.currentState;
+    if (formState == null || !formState.validate()) return;
+
+    _showSnackBar('Dados da transação preenchidos com sucesso.');
+  }
+
+  void _showSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message)),
+    );
+  }
+
+  String _formatMissingFields(List<String> fields) {
+    if (fields.length == 1) return fields.first;
+
+    final allButLast = fields.take(fields.length - 1).join(', ');
+    return '$allButLast e ${fields.last}';
+  }
+
+  double? _parseCurrencyInput(String value) {
+    final trimmed = value.trim();
+    if (trimmed.isEmpty) return null;
+
+    final normalized = trimmed.contains(',')
+        ? trimmed.replaceAll('.', '').replaceAll(',', '.')
+        : trimmed;
+
+    return double.tryParse(normalized);
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: SingleChildScrollView(
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          const PageHeader(
-            title: "Transações",
-            showLogo: true,
-          ),
-          const SizedBox(height: 8),
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Form(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const TransactionTypeSelector(),
-                  const SizedBox(height: 16),
-                  const TextField(
-                    decoration: InputDecoration(
-                      labelText: 'Valor',
-                      prefixText: 'R\$ ',
-                    ),
-                    keyboardType: TextInputType.number,
-                  ),
-                  const SizedBox(height: 16),
-                  _buildCategoryField(),
-                  const SizedBox(height: 16),
-                  const SelectorField(
-                    label: 'Conta bancária',
-                    hint: 'Selecione uma conta',
-                    icon: Icons.account_balance_wallet_outlined,
-                  ),
-                  const SizedBox(height: 16),
-                  const DatePickerField(),
-                  const SizedBox(height: 16),
-                  const TextField(
-                    maxLines: 3,
-                    decoration: InputDecoration(
-                      labelText: 'Descrição',
-                      hintText: 'Descreva a transação',
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-                  SizedBox(
-                    width: double.infinity,
-                    child: FilledButton(
-                      style: FilledButton.styleFrom(
-                        backgroundColor: const Color(0xFF241136),
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16),
-                        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const PageHeader(
+              title: 'Transações',
+              showLogo: true,
+            ),
+            const SizedBox(height: 8),
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const TransactionTypeSelector(),
+                    const SizedBox(height: 16),
+                    TextFormField(
+                      controller: _valueController,
+                      decoration: const InputDecoration(
+                        labelText: 'Valor',
+                        prefixText: 'R\$ ',
                       ),
-                      onPressed: () {
-                        if (_categories.isNotEmpty &&
-                            _selectedCategoryId == null) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Selecione uma categoria.'),
-                            ),
-                          );
-                          return;
+                      keyboardType: const TextInputType.numberWithOptions(
+                        decimal: true,
+                      ),
+                      validator: (value) {
+                        final parsed = _parseCurrencyInput(value ?? '');
+                        if (parsed == null || parsed <= 0) {
+                          return 'Informe um valor válido.';
                         }
 
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                              content: Text('Transação salva com sucesso.')),
-                        );
+                        return null;
                       },
-                      child: const Text('Salvar transação'),
                     ),
-                  ),
-                  const SizedBox(height: 100),
-                ],
+                    const SizedBox(height: 16),
+                    _buildCategoryField(),
+                    const SizedBox(height: 16),
+                    _buildAccountField(),
+                    const SizedBox(height: 16),
+                    _buildTransactorField(),
+                    const SizedBox(height: 16),
+                    _buildPaymentMethodField(),
+                    const SizedBox(height: 16),
+                    _buildSituationField(),
+                    const SizedBox(height: 16),
+                    const DatePickerField(),
+                    const SizedBox(height: 16),
+                    TextFormField(
+                      controller: _descriptionController,
+                      maxLines: 3,
+                      decoration: const InputDecoration(
+                        labelText: 'Descrição',
+                        hintText: 'Descreva a transação',
+                      ),
+                      validator: (value) {
+                        if ((value ?? '').trim().isEmpty) {
+                          return 'Informe a descrição.';
+                        }
+
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 24),
+                    SizedBox(
+                      width: double.infinity,
+                      child: FilledButton(
+                        style: FilledButton.styleFrom(
+                          backgroundColor: const Color(0xFF241136),
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                        ),
+                        onPressed: _handleSave,
+                        child: const Text('Salvar transação'),
+                      ),
+                    ),
+                    const SizedBox(height: 100),
+                  ],
+                ),
               ),
             ),
-          ),
-        ]),
+          ],
+        ),
       ),
     );
   }
+}
+
+class _SelectionFieldState extends StatelessWidget {
+  final String label;
+  final Widget child;
+
+  const _SelectionFieldState({
+    required this.label,
+    required this.child,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label, style: const TextStyle(fontWeight: FontWeight.w600)),
+        const SizedBox(height: 8),
+        child,
+      ],
+    );
+  }
+}
+
+class _SelectionOption<T> {
+  final T value;
+  final String label;
+
+  const _SelectionOption(this.value, this.label);
 }

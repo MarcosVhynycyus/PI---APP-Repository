@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../models/account_model.dart';
 import '../services/balance_refresh_notifier.dart';
 import '../services/banks_service.dart';
 import '../widgets/balance_card.dart';
@@ -21,6 +22,9 @@ class _HomePageState extends State<HomePage> {
   bool _isLoadingBalance = true;
   double _userBalance = 0;
   String? _balanceError;
+  bool _isLoadingAccounts = true;
+  List<AccountModel> _accounts = [];
+  String? _accountsError;
 
   @override
   void initState() {
@@ -29,6 +33,7 @@ class _HomePageState extends State<HomePage> {
       _onBalanceShouldRefresh,
     );
     _loadUserBalance();
+    _loadUserAccounts();
   }
 
   @override
@@ -42,6 +47,7 @@ class _HomePageState extends State<HomePage> {
   void _onBalanceShouldRefresh() {
     if (!mounted) return;
     _loadUserBalance(showLoader: false);
+    _loadUserAccounts(showLoader: false);
   }
 
   Future<void> _loadUserBalance({bool showLoader = true}) async {
@@ -75,6 +81,37 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
+  Future<void> _loadUserAccounts({bool showLoader = true}) async {
+    if (showLoader) {
+      setState(() {
+        _isLoadingAccounts = true;
+      });
+    }
+
+    try {
+      final accounts = await _banksService.getUserAccounts();
+      if (!mounted) return;
+
+      setState(() {
+        _accounts = accounts;
+        _accountsError = null;
+        _isLoadingAccounts = false;
+      });
+    } on BanksException catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _accountsError = e.message;
+        _isLoadingAccounts = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _accountsError = 'Erro ao carregar contas.';
+        _isLoadingAccounts = false;
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -96,7 +133,7 @@ class _HomePageState extends State<HomePage> {
                       onRetry: () => _loadUserBalance(),
                     ),
                     const SizedBox(height: 16),
-                    const BalanceCard(),
+                    _buildAccountBalanceCard(),
                     const SizedBox(height: 16),
                     const ExpenseChart(),
                     const SizedBox(height: 16),
@@ -110,6 +147,103 @@ class _HomePageState extends State<HomePage> {
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildAccountBalanceCard() {
+    if (_isLoadingAccounts) {
+      return const _AccountBalancePlaceholder(
+        child: SizedBox(
+          width: 22,
+          height: 22,
+          child: CircularProgressIndicator(strokeWidth: 2),
+        ),
+      );
+    }
+
+    if (_accountsError != null && _accounts.isEmpty) {
+      return _AccountBalancePlaceholder(
+        child: Row(
+          children: [
+            Expanded(
+              child: Text(
+                _accountsError!,
+                style: const TextStyle(
+                  color: Colors.red,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+            TextButton(
+              onPressed: _loadUserAccounts,
+              child: const Text('Tentar'),
+            ),
+          ],
+        ),
+      );
+    }
+
+    if (_accounts.isEmpty) {
+      return const _AccountBalancePlaceholder(
+        child: Text(
+          'Nenhuma conta cadastrada.',
+          style: TextStyle(
+            color: Colors.black54,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      );
+    }
+
+    final account = _accounts.first;
+
+    return BalanceCard(
+      title: account.description,
+      balance: account.balance,
+      subtitle: 'Conta financeira',
+      color: _getAccountColor(account.idAccount),
+    );
+  }
+
+  Color _getAccountColor(int id) {
+    const colors = [
+      Color(0xFFF2C300),
+      Color(0xFF5C4DB1),
+      Color(0xFF53B6F0),
+      Color(0xFF00C853),
+      Color(0xFFD50000),
+    ];
+
+    return colors[id % colors.length];
+  }
+}
+
+class _AccountBalancePlaceholder extends StatelessWidget {
+  final Widget child;
+
+  const _AccountBalancePlaceholder({required this.child});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      constraints: const BoxConstraints(minHeight: 122),
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Align(
+        alignment: Alignment.centerLeft,
+        child: child,
       ),
     );
   }
