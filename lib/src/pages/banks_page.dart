@@ -248,11 +248,6 @@ class _BanksPageState extends State<BanksPage> {
     return double.tryParse(value);
   }
 
-  String _formatCurrency(double value) {
-    final formatted = value.toStringAsFixed(2).replaceAll('.', ',');
-    return 'R\$ $formatted';
-  }
-
   Color _getColor(dynamic id) {
     final colors = [
       const Color(0xFFF2C300),
@@ -329,10 +324,9 @@ class _BanksPageState extends State<BanksPage> {
             padding: const EdgeInsets.only(bottom: 12),
             child: BankAccountCard(
               data: BankAccountData(
-                name: account.description,
-                account: 'Conta: ${account.idAccount}',
-                agency: 'Agencia: ---',
-                balance: _formatCurrency(account.balance),
+                id: account.idAccount,
+                description: account.description,
+                balance: account.balance,
                 color: _getColor(account.idAccount),
               ),
               onEdit: () => _editAccount(account),
