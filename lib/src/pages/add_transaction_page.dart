@@ -58,6 +58,7 @@ class _AddTransactionPageState extends State<AddTransactionPage> {
 
   int? _selectedPaymentMethodId;
   int? _selectedSituationId;
+  DateTime? _selectedDate;
 
   @override
   void initState() {
@@ -282,6 +283,21 @@ class _AddTransactionPageState extends State<AddTransactionPage> {
     });
   }
 
+  Future<void> _selectDate() async {
+    final now = DateTime.now();
+    final selected = await showDatePicker(
+      context: context,
+      initialDate: _selectedDate ?? now,
+      firstDate: DateTime(now.year - 10),
+      lastDate: DateTime(now.year + 10),
+    );
+
+    if (!mounted || selected == null) return;
+    setState(() {
+      _selectedDate = selected;
+    });
+  }
+
   Future<T?> _showSelectionSheet<T>({
     required String title,
     required List<_SelectionOption<T>> options,
@@ -483,13 +499,16 @@ class _AddTransactionPageState extends State<AddTransactionPage> {
       missingFields.add('forma de pagamento');
     }
     if (_selectedSituationId == null) missingFields.add('situação');
+    if (_selectedDate == null) missingFields.add('data');
 
     if (missingFields.isNotEmpty) {
       _showSnackBar('Selecione ${_formatMissingFields(missingFields)}.');
       return;
     }
 
-    if (_selectedSituationId == _paidSituationId) {
+    final financialMovementDates = _buildFinancialMovementDates(_selectedDate!);
+
+    if (!_hasPaymentDateWhenPaid(financialMovementDates)) {
       _showSnackBar(
         'Informe a data de pagamento para marcar a movimentação como quitada.',
       );
@@ -524,6 +543,28 @@ class _AddTransactionPageState extends State<AddTransactionPage> {
         : trimmed;
 
     return double.tryParse(normalized);
+  }
+
+  String _formatDateForApi(DateTime date) {
+    return '${date.year.toString().padLeft(4, '0')}-'
+        '${date.month.toString().padLeft(2, '0')}-'
+        '${date.day.toString().padLeft(2, '0')}';
+  }
+
+  Map<String, String?> _buildFinancialMovementDates(DateTime date) {
+    final formattedDate = _formatDateForApi(date);
+
+    return {
+      'movement_date': formattedDate,
+      'due_date': formattedDate,
+      'payment_date':
+          _selectedSituationId == _paidSituationId ? formattedDate : null,
+    };
+  }
+
+  bool _hasPaymentDateWhenPaid(Map<String, String?> dates) {
+    return _selectedSituationId != _paidSituationId ||
+        dates['payment_date'] != null;
   }
 
   @override
@@ -576,7 +617,10 @@ class _AddTransactionPageState extends State<AddTransactionPage> {
                     const SizedBox(height: 16),
                     _buildSituationField(),
                     const SizedBox(height: 16),
-                    const DatePickerField(),
+                    DatePickerField(
+                      selectedDate: _selectedDate,
+                      onTap: _selectDate,
+                    ),
                     const SizedBox(height: 16),
                     TextFormField(
                       controller: _descriptionController,
