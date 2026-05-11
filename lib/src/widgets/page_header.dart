@@ -4,17 +4,28 @@ import 'app_logo.dart';
 
 class PageHeader extends StatelessWidget {
   final String title;
+
   final bool showLogo;
+
+  final bool showBackButton;
+
+  final IconData? customIcon;
+
   final VoidCallback? onLogoTap;
+  final VoidCallback? onBackTap;
   final VoidCallback? onNotificationTap;
   final VoidCallback? onSearchTap;
+
   final String? userInitial;
 
   const PageHeader({
     super.key,
     required this.title,
     this.showLogo = false,
+    this.showBackButton = false,
+    this.customIcon,
     this.onLogoTap,
+    this.onBackTap,
     this.onNotificationTap,
     this.onSearchTap,
     this.userInitial,
@@ -22,7 +33,10 @@ class PageHeader extends StatelessWidget {
 
   String get _avatarInitial {
     final trimmedInitial = userInitial?.trim() ?? '';
-    if (trimmedInitial.isEmpty) return 'U';
+
+    if (trimmedInitial.isEmpty) {
+      return 'U';
+    }
 
     return trimmedInitial.substring(0, 1).toUpperCase();
   }
@@ -30,10 +44,18 @@ class PageHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 20),
+      padding: const EdgeInsets.fromLTRB(
+        0,
+        20,
+        16,
+        20,
+      ),
       decoration: const BoxDecoration(
         gradient: LinearGradient(
-          colors: [Color(0xFF3A0A73), Color(0xFF7D2AE8)],
+          colors: [
+            Color(0xFF3A0A73),
+            Color(0xFF7D2AE8),
+          ],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
@@ -44,6 +66,14 @@ class PageHeader extends StatelessWidget {
       ),
       child: Row(
         children: [
+          if (showBackButton)
+            IconButton(
+              onPressed: onBackTap ?? () => Navigator.of(context).pop(),
+              icon: const Icon(
+                Icons.arrow_back_ios_new,
+                color: Colors.white,
+              ),
+            ),
           if (showLogo) _buildLogo(),
           if (showLogo) const SizedBox(width: 12),
           Expanded(
@@ -69,7 +99,10 @@ class PageHeader extends StatelessWidget {
             IconButton(
               tooltip: 'Buscar',
               onPressed: onSearchTap,
-              icon: const Icon(Icons.search, color: Colors.white),
+              icon: const Icon(
+                Icons.search,
+                color: Colors.white,
+              ),
             ),
           CircleAvatar(
             backgroundColor: Colors.white,
@@ -87,14 +120,32 @@ class PageHeader extends StatelessWidget {
   }
 
   Widget _buildLogo() {
-    const logo = AppLogo();
+    Widget child;
 
-    if (onLogoTap == null) return logo;
+    if (customIcon != null) {
+      child = Container(
+        width: 48,
+        height: 48,
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          shape: BoxShape.circle,
+        ),
+        child: Icon(
+          customIcon,
+          color: Color(0xFF5C4DB1),
+          size: 28,
+        ),
+      );
+    } else {
+      child = const AppLogo();
+    }
+
+    if (onLogoTap == null) return child;
 
     return InkWell(
       borderRadius: BorderRadius.circular(24),
       onTap: onLogoTap,
-      child: logo,
+      child: child,
     );
   }
 }
