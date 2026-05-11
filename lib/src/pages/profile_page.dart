@@ -66,7 +66,11 @@ class _ProfilePageState extends State<ProfilePage> {
               title: 'Planos de Conta',
               onTap: () => Navigator.pushNamed(context, '/account-plans'),
             ),
-            const SettingsTile(icon: Icons.currency_exchange, title: 'Moeda'),
+            SettingsTile(
+              icon: Icons.people,
+              title: 'Transatores',
+              onTap: () => Navigator.pushNamed(context, '/transactors'),
+            ),
             const SizedBox(height: 24),
             Text('Segurança',
                 style: Theme.of(context)

@@ -4,6 +4,7 @@ import 'pages/account_plans_page.dart';
 import 'pages/login_page.dart';
 import 'pages/main_navigation.dart';
 import 'services/auth_store.dart';
+import 'pages/transactors_page.dart';
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
@@ -46,6 +47,7 @@ class MyApp extends StatelessWidget {
         '/login': (_) => const LoginPage(),
         '/main': (_) => const MainNavigation(),
         '/account-plans': (_) => const AccountPlansPage(),
+        '/transactors': (_) => const TransactorsPage(),
       },
     );
   }
