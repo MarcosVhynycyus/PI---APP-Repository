@@ -1,6 +1,7 @@
 import 'package:finansme_flutter/src/services/banks_service.dart';
 import 'package:flutter/material.dart';
 import '../models/account_model.dart';
+import '../services/balance_refresh_notifier.dart';
 import '../widgets/page_header.dart';
 import '../widgets/bank_account_card.dart';
 
@@ -28,7 +29,19 @@ class _BanksPageState extends State<BanksPage> {
   @override
   void initState() {
     super.initState();
+    BalanceRefreshNotifier.listenable.addListener(_onBalanceShouldRefresh);
     _loadBanks();
+  }
+
+  @override
+  void dispose() {
+    BalanceRefreshNotifier.listenable.removeListener(_onBalanceShouldRefresh);
+    super.dispose();
+  }
+
+  void _onBalanceShouldRefresh() {
+    if (!mounted) return;
+    _loadBanks(showLoader: false);
   }
 
   Future<void> _loadBanks({bool showLoader = true}) async {

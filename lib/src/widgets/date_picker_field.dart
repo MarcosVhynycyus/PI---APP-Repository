@@ -1,18 +1,26 @@
 import 'package:flutter/material.dart';
 
 class DatePickerField extends StatelessWidget {
+  final String label;
+  final String hint;
+  final IconData icon;
   final DateTime? selectedDate;
   final VoidCallback onTap;
+  final VoidCallback? onClear;
 
   const DatePickerField({
     super.key,
     required this.onTap,
+    this.label = 'Data',
+    this.hint = 'Selecione uma data',
+    this.icon = Icons.calendar_month_outlined,
     this.selectedDate,
+    this.onClear,
   });
 
   String get _displayText {
     final date = selectedDate;
-    if (date == null) return 'Selecione uma data';
+    if (date == null) return hint;
 
     return '${date.day.toString().padLeft(2, '0')}/'
         '${date.month.toString().padLeft(2, '0')}/'
@@ -26,7 +34,7 @@ class DatePickerField extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text('Data', style: TextStyle(fontWeight: FontWeight.w600)),
+        Text(label, style: const TextStyle(fontWeight: FontWeight.w600)),
         const SizedBox(height: 8),
         InkWell(
           onTap: onTap,
@@ -39,10 +47,7 @@ class DatePickerField extends StatelessWidget {
             ),
             child: Row(
               children: [
-                const Icon(
-                  Icons.calendar_month_outlined,
-                  color: Color(0xFF5B1FA6),
-                ),
+                Icon(icon, color: const Color(0xFF5B1FA6)),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(
@@ -52,7 +57,14 @@ class DatePickerField extends StatelessWidget {
                     ),
                   ),
                 ),
-                const Icon(Icons.keyboard_arrow_down),
+                if (hasSelectedDate && onClear != null)
+                  IconButton(
+                    onPressed: onClear,
+                    icon: const Icon(Icons.close),
+                    tooltip: 'Limpar data',
+                  )
+                else
+                  const Icon(Icons.keyboard_arrow_down),
               ],
             ),
           ),

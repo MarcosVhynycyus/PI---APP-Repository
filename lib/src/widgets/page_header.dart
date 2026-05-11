@@ -132,7 +132,7 @@ class PageHeader extends StatelessWidget {
         ),
         child: Icon(
           customIcon,
-          color: Color(0xFF5C4DB1),
+          color: const Color(0xFF5C4DB1),
           size: 28,
         ),
       );

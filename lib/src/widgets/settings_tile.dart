@@ -4,12 +4,16 @@ class SettingsTile extends StatelessWidget {
   final IconData icon;
   final String title;
   final VoidCallback? onTap;
+  final Color? iconColor;
+  final Widget? trailing;
 
   const SettingsTile({
     super.key,
     required this.icon,
     required this.title,
     this.onTap,
+    this.iconColor,
+    this.trailing,
   });
 
   @override
@@ -29,10 +33,10 @@ class SettingsTile extends StatelessWidget {
           ],
         ),
         child: ListTile(
-          leading: Icon(icon, color: const Color(0xFF5B1FA6)),
+          leading: Icon(icon, color: iconColor ?? const Color(0xFF5B1FA6)),
           title:
               Text(title, style: const TextStyle(fontWeight: FontWeight.w600)),
-          trailing: const Icon(Icons.chevron_right),
+          trailing: trailing ?? const Icon(Icons.chevron_right),
           onTap: onTap,
         ),
       ),

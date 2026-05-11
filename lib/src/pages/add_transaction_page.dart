@@ -4,6 +4,7 @@ import '../models/account_plan_model.dart';
 import '../models/transactor_model.dart';
 import '../services/account_plans_service.dart';
 import '../services/banks_service.dart';
+import '../services/finacial_movements_service.dart';
 import '../services/transactors_service.dart';
 import '../widgets/page_header.dart';
 import '../widgets/date_picker_field.dart';
@@ -43,10 +44,15 @@ class _AddTransactionPageState extends State<AddTransactionPage> {
 
   final _formKey = GlobalKey<FormState>();
   final _valueController = TextEditingController();
+  final _docNumController = TextEditingController();
   final _descriptionController = TextEditingController();
   final _accountPlansService = AccountPlansService();
   final _banksService = BanksService();
+  final _financialMovementsService = FinancialMovementsService();
   final _transactorsService = TransactorsService();
+
+  bool _isSaving = false;
+  int _selectedTypeMovementId = TransactionTypeSelector.expenseMovementId;
 
   bool _isLoadingCategories = true;
   String? _categoriesError;
@@ -65,7 +71,9 @@ class _AddTransactionPageState extends State<AddTransactionPage> {
 
   int? _selectedPaymentMethodId;
   int? _selectedSituationId;
-  DateTime? _selectedDate;
+  DateTime? _selectedMovementDate;
+  DateTime? _selectedDueDate;
+  DateTime? _selectedPaymentDate;
 
   @override
   void initState() {
@@ -78,6 +86,7 @@ class _AddTransactionPageState extends State<AddTransactionPage> {
   @override
   void dispose() {
     _valueController.dispose();
+    _docNumController.dispose();
     _descriptionController.dispose();
     super.dispose();
   }
@@ -290,18 +299,21 @@ class _AddTransactionPageState extends State<AddTransactionPage> {
     });
   }
 
-  Future<void> _selectDate() async {
+  Future<void> _pickDate({
+    required DateTime? currentDate,
+    required ValueChanged<DateTime> onSelected,
+  }) async {
     final now = DateTime.now();
     final selected = await showDatePicker(
       context: context,
-      initialDate: _selectedDate ?? now,
+      initialDate: currentDate ?? now,
       firstDate: DateTime(now.year - 10),
       lastDate: DateTime(now.year + 10),
     );
 
     if (!mounted || selected == null) return;
     setState(() {
-      _selectedDate = selected;
+      onSelected(selected);
     });
   }
 
@@ -496,36 +508,62 @@ class _AddTransactionPageState extends State<AddTransactionPage> {
     return null;
   }
 
-  void _handleSave() {
+  Future<void> _handleSave() async {
+    if (_isSaving) return;
+
     final missingFields = <String>[];
 
     if (_selectedCategoryId == null) missingFields.add('categoria');
     if (_selectedAccountId == null) missingFields.add('conta bancária');
     if (_selectedTransactorId == null) missingFields.add('transator');
-    if (_selectedPaymentMethodId == null) {
+    if (_selectedPaymentDate != null && _selectedPaymentMethodId == null) {
       missingFields.add('forma de pagamento');
     }
     if (_selectedSituationId == null) missingFields.add('situação');
-    if (_selectedDate == null) missingFields.add('data');
+    if (_selectedMovementDate == null) {
+      missingFields.add('data da movimentação');
+    }
 
     if (missingFields.isNotEmpty) {
       _showSnackBar('Selecione ${_formatMissingFields(missingFields)}.');
       return;
     }
 
-    final financialMovementDates = _buildFinancialMovementDates(_selectedDate!);
-
-    if (!_hasPaymentDateWhenPaid(financialMovementDates)) {
+    if (_selectedDueDate != null &&
+        _selectedDueDate!.isBefore(_selectedMovementDate!)) {
       _showSnackBar(
-        'Informe a data de pagamento para marcar a movimentação como quitada.',
-      );
+          'A data de vencimento não pode ser anterior à movimentação.');
       return;
     }
 
     final formState = _formKey.currentState;
     if (formState == null || !formState.validate()) return;
 
-    _showSnackBar('Dados da transação preenchidos com sucesso.');
+    final body = _buildFinancialMovementBody();
+
+    setState(() {
+      _isSaving = true;
+    });
+
+    try {
+      await _financialMovementsService.createFinancialMovement(body);
+      if (!mounted) return;
+
+      _clearForm();
+      _showSnackBar('Transação lançada com sucesso.');
+    } on FinancialMovementsException catch (e) {
+      if (!mounted) return;
+      _showSnackBar(e.message);
+    } catch (_) {
+      if (!mounted) return;
+      _showSnackBar('Erro ao lançar transação.');
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isSaving = false;
+        });
+      }
+    }
   }
 
   void _showSnackBar(String message) {
@@ -558,20 +596,45 @@ class _AddTransactionPageState extends State<AddTransactionPage> {
         '${date.day.toString().padLeft(2, '0')}';
   }
 
-  Map<String, String?> _buildFinancialMovementDates(DateTime date) {
-    final formattedDate = _formatDateForApi(date);
+  Map<String, dynamic> _buildFinancialMovementBody() {
+    final movementDate = _selectedMovementDate!;
+    final dueDate = _selectedDueDate ?? movementDate;
 
     return {
-      'movement_date': formattedDate,
-      'due_date': formattedDate,
-      'payment_date':
-          _selectedSituationId == _paidSituationId ? formattedDate : null,
+      'type_movement_id': _selectedTypeMovementId,
+      'movement_date': _formatDateForApi(movementDate),
+      'due_date': _formatDateForApi(dueDate),
+      'payment_date': _selectedPaymentDate == null
+          ? null
+          : _formatDateForApi(_selectedPaymentDate!),
+      'doc_num': _docNumController.text.trim(),
+      'transator_id': _selectedTransactorId!,
+      'value': _parseCurrencyInput(_valueController.text)!,
+      'payment_method_id': _selectedPaymentMethodId,
+      'situation_id': _selectedSituationId!,
+      'account_id': _selectedAccountId!,
+      'account_plan_id': _selectedCategoryId!,
+      'reason': _descriptionController.text.trim(),
     };
   }
 
-  bool _hasPaymentDateWhenPaid(Map<String, String?> dates) {
-    return _selectedSituationId != _paidSituationId ||
-        dates['payment_date'] != null;
+  void _clearForm() {
+    _formKey.currentState?.reset();
+    _valueController.clear();
+    _docNumController.clear();
+    _descriptionController.clear();
+
+    setState(() {
+      _selectedTypeMovementId = TransactionTypeSelector.expenseMovementId;
+      _selectedCategoryId = null;
+      _selectedAccountId = null;
+      _selectedTransactorId = null;
+      _selectedPaymentMethodId = null;
+      _selectedSituationId = null;
+      _selectedMovementDate = null;
+      _selectedDueDate = null;
+      _selectedPaymentDate = null;
+    });
   }
 
   @override
@@ -595,7 +658,14 @@ class _AddTransactionPageState extends State<AddTransactionPage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const TransactionTypeSelector(),
+                    TransactionTypeSelector(
+                      selectedTypeMovementId: _selectedTypeMovementId,
+                      onChanged: (typeMovementId) {
+                        setState(() {
+                          _selectedTypeMovementId = typeMovementId;
+                        });
+                      },
+                    ),
                     const SizedBox(height: 16),
                     TextFormField(
                       controller: _valueController,
@@ -616,20 +686,77 @@ class _AddTransactionPageState extends State<AddTransactionPage> {
                       },
                     ),
                     const SizedBox(height: 16),
+                    TextFormField(
+                      controller: _docNumController,
+                      maxLength: 50,
+                      decoration: const InputDecoration(
+                        labelText: 'Número do documento',
+                        hintText: 'Informe o documento',
+                        counterText: '',
+                      ),
+                      validator: (value) {
+                        final docNum = (value ?? '').trim();
+                        if (docNum.isEmpty) {
+                          return 'Informe o número do documento.';
+                        }
+                        if (docNum.length > 50) {
+                          return 'Informe no máximo 50 caracteres.';
+                        }
+
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 16),
+                    DatePickerField(
+                      label: 'Data da movimentação',
+                      hint: 'Selecione a data da movimentação',
+                      selectedDate: _selectedMovementDate,
+                      onTap: () => _pickDate(
+                        currentDate: _selectedMovementDate,
+                        onSelected: (date) => _selectedMovementDate = date,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    DatePickerField(
+                      label: 'Data de vencimento',
+                      hint: 'Sem vencimento informado',
+                      selectedDate: _selectedDueDate,
+                      onTap: () => _pickDate(
+                        currentDate: _selectedDueDate ?? _selectedMovementDate,
+                        onSelected: (date) => _selectedDueDate = date,
+                      ),
+                      onClear: () {
+                        setState(() {
+                          _selectedDueDate = null;
+                        });
+                      },
+                    ),
+                    const SizedBox(height: 16),
                     _buildCategoryField(),
                     const SizedBox(height: 16),
                     _buildAccountField(),
                     const SizedBox(height: 16),
                     _buildTransactorField(),
                     const SizedBox(height: 16),
+                    DatePickerField(
+                      label: 'Data de pagamento',
+                      hint: 'Sem pagamento informado',
+                      selectedDate: _selectedPaymentDate,
+                      onTap: () => _pickDate(
+                        currentDate:
+                            _selectedPaymentDate ?? _selectedMovementDate,
+                        onSelected: (date) => _selectedPaymentDate = date,
+                      ),
+                      onClear: () {
+                        setState(() {
+                          _selectedPaymentDate = null;
+                        });
+                      },
+                    ),
+                    const SizedBox(height: 16),
                     _buildPaymentMethodField(),
                     const SizedBox(height: 16),
                     _buildSituationField(),
-                    const SizedBox(height: 16),
-                    DatePickerField(
-                      selectedDate: _selectedDate,
-                      onTap: _selectDate,
-                    ),
                     const SizedBox(height: 16),
                     TextFormField(
                       controller: _descriptionController,
@@ -659,7 +786,16 @@ class _AddTransactionPageState extends State<AddTransactionPage> {
                           ),
                         ),
                         onPressed: _handleSave,
-                        child: const Text('Salvar transação'),
+                        child: _isSaving
+                            ? const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Colors.white,
+                                ),
+                              )
+                            : const Text('Salvar transação'),
                       ),
                     ),
                     const SizedBox(height: 100),

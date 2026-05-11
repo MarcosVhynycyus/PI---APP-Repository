@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import '../models/account_model.dart';
+import '../models/financial_movement_model.dart';
 import '../services/balance_refresh_notifier.dart';
 import '../services/banks_service.dart';
+import '../services/finacial_movements_service.dart';
 import '../widgets/balance_card.dart';
 import '../widgets/expense_chart.dart';
 import '../widgets/page_header.dart';
@@ -14,10 +16,12 @@ class HomePage extends StatefulWidget {
     super.key,
     this.onLogoTap,
     this.userInitial,
+    this.financialMovementsService,
   });
 
   final VoidCallback? onLogoTap;
   final String? userInitial;
+  final FinancialMovementsService? financialMovementsService;
 
   @override
   State<HomePage> createState() => _HomePageState();
@@ -25,6 +29,7 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   final _banksService = BanksService();
+  late final FinancialMovementsService _financialMovementsService;
 
   bool _isLoadingBalance = true;
   double _userBalance = 0;
@@ -32,15 +37,21 @@ class _HomePageState extends State<HomePage> {
   bool _isLoadingAccounts = true;
   List<AccountModel> _accounts = [];
   String? _accountsError;
+  bool _isLoadingExpenseChart = true;
+  List<double> _monthlyExpenseValues = [];
+  String? _expenseChartError;
 
   @override
   void initState() {
     super.initState();
+    _financialMovementsService =
+        widget.financialMovementsService ?? FinancialMovementsService();
     BalanceRefreshNotifier.listenable.addListener(
       _onBalanceShouldRefresh,
     );
     _loadUserBalance();
     _loadUserAccounts();
+    _loadExpenseChartValues();
   }
 
   @override
@@ -55,6 +66,7 @@ class _HomePageState extends State<HomePage> {
     if (!mounted) return;
     _loadUserBalance(showLoader: false);
     _loadUserAccounts(showLoader: false);
+    _loadExpenseChartValues(showLoader: false);
   }
 
   Future<void> _loadUserBalance({bool showLoader = true}) async {
@@ -119,6 +131,47 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
+  Future<void> _loadExpenseChartValues({bool showLoader = true}) async {
+    if (showLoader) {
+      setState(() {
+        _isLoadingExpenseChart = true;
+      });
+    }
+
+    try {
+      final result =
+          await _financialMovementsService.getUserFinancialMovements();
+      final movements = result
+          .whereType<Map>()
+          .map((item) => FinancialMovementModel.fromJson(item))
+          .toList();
+      final values = buildMonthlyExpenseChartValues(
+        movements,
+        DateTime.now(),
+      );
+
+      if (!mounted) return;
+
+      setState(() {
+        _monthlyExpenseValues = values;
+        _expenseChartError = null;
+        _isLoadingExpenseChart = false;
+      });
+    } on FinancialMovementsException catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _expenseChartError = e.message;
+        _isLoadingExpenseChart = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _expenseChartError = 'Erro ao carregar resumo mensal.';
+        _isLoadingExpenseChart = false;
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -147,7 +200,7 @@ class _HomePageState extends State<HomePage> {
                     const SizedBox(height: 16),
                     _buildAccountBalanceCard(),
                     const SizedBox(height: 16),
-                    const ExpenseChart(),
+                    _buildExpenseChart(),
                     const SizedBox(height: 16),
                     const SectionHeader(title: 'Transações recentes'),
                     const SizedBox(height: 12),
@@ -218,6 +271,42 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
+  Widget _buildExpenseChart() {
+    if (_isLoadingExpenseChart) {
+      return const _ChartPlaceholder(
+        child: SizedBox(
+          width: 22,
+          height: 22,
+          child: CircularProgressIndicator(strokeWidth: 2),
+        ),
+      );
+    }
+
+    if (_expenseChartError != null && _monthlyExpenseValues.isEmpty) {
+      return _ChartPlaceholder(
+        child: Row(
+          children: [
+            Expanded(
+              child: Text(
+                _expenseChartError!,
+                style: const TextStyle(
+                  color: Colors.red,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+            TextButton(
+              onPressed: _loadExpenseChartValues,
+              child: const Text('Tentar'),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return ExpenseChart(values: _monthlyExpenseValues);
+  }
+
   Color _getAccountColor(int id) {
     const colors = [
       Color(0xFFF2C300),
@@ -259,4 +348,61 @@ class _AccountBalancePlaceholder extends StatelessWidget {
       ),
     );
   }
+}
+
+class _ChartPlaceholder extends StatelessWidget {
+  final Widget child;
+
+  const _ChartPlaceholder({required this.child});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      constraints: const BoxConstraints(minHeight: 210),
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Align(
+        alignment: Alignment.center,
+        child: child,
+      ),
+    );
+  }
+}
+
+@visibleForTesting
+List<double> buildMonthlyExpenseChartValues(
+  List<FinancialMovementModel> movements,
+  DateTime referenceDate,
+) {
+  final weeklyTotals = List<double>.filled(5, 0);
+
+  for (final movement in movements) {
+    final movementDate = movement.movementDate;
+    final isSameMonth = movementDate.year == referenceDate.year &&
+        movementDate.month == referenceDate.month;
+
+    if (!movement.isExpense || !isSameMonth || movement.value <= 0) {
+      continue;
+    }
+
+    final weekIndex = (movementDate.day - 1) ~/ 7;
+    final safeIndex =
+        weekIndex >= weeklyTotals.length ? weeklyTotals.length - 1 : weekIndex;
+
+    weeklyTotals[safeIndex] += movement.value;
+  }
+
+  final hasMovements = weeklyTotals.any((value) => value > 0);
+  return hasMovements ? weeklyTotals : const [];
 }

@@ -78,12 +78,8 @@ class AuthStore {
     final storedEmail = await _storage.read(key: _keyUserEmail);
 
     return AuthUserProfile(
-      name: tokenProfile.name.isNotEmpty
-          ? tokenProfile.name
-          : storedName?.trim() ?? '',
-      email: tokenProfile.email.isNotEmpty
-          ? tokenProfile.email
-          : storedEmail?.trim() ?? '',
+      name: _preferStoredProfileValue(storedName, tokenProfile.name),
+      email: _preferStoredProfileValue(storedEmail, tokenProfile.email),
     );
   }
 
@@ -171,5 +167,12 @@ class AuthStore {
     }
 
     return sources;
+  }
+
+  static String _preferStoredProfileValue(String? stored, String tokenValue) {
+    final trimmedStored = stored?.trim() ?? '';
+    if (trimmedStored.isNotEmpty) return trimmedStored;
+
+    return tokenValue.trim();
   }
 }
