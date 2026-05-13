@@ -1,11 +1,21 @@
 import 'package:flutter/material.dart';
 
 class ExpenseChart extends StatelessWidget {
-  const ExpenseChart({super.key});
+  final List<double> values;
+  final String title;
+
+  const ExpenseChart({
+    super.key,
+    required this.values,
+    this.title = 'Resumo mensal',
+  });
+
+  static const _chartHeight = 140.0;
+  static const _maxBarHeight = 120.0;
 
   @override
   Widget build(BuildContext context) {
-    const bars = [0.45, 0.72, 0.55, 0.88, 0.60, 0.34, 0.67];
+    final bars = _normalizeValues(values);
 
     return Container(
       padding: const EdgeInsets.all(18),
@@ -23,38 +33,88 @@ class ExpenseChart extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Resumo mensal',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 16),
-          SizedBox(
-            height: 140,
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: bars
-                  .map(
-                    (heightFactor) => Expanded(
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 4),
-                        child: Align(
-                          alignment: Alignment.bottomCenter,
-                          child: Container(
-                            height: 120 * heightFactor,
-                            decoration: BoxDecoration(
-                              color: const Color(0xFF7D2AE8),
-                              borderRadius: BorderRadius.circular(16),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  )
-                  .toList(),
+          Text(
+            title,
+            style: const TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
             ),
           ),
+          const SizedBox(height: 16),
+          bars.isEmpty ? const _EmptyChartMessage() : _ChartBars(bars: bars),
         ],
+      ),
+    );
+  }
+
+  List<double> _normalizeValues(List<double> values) {
+    final maxValue = values.fold<double>(
+      0,
+      (max, value) => value > max ? value : max,
+    );
+
+    if (maxValue <= 0) return const [];
+
+    return values.map((value) => value <= 0 ? 0.0 : value / maxValue).toList();
+  }
+}
+
+class _ChartBars extends StatelessWidget {
+  final List<double> bars;
+
+  const _ChartBars({required this.bars});
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: ExpenseChart._chartHeight,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.end,
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: bars.asMap().entries.map(
+          (entry) {
+            final index = entry.key;
+            final heightFactor = entry.value;
+
+            return Expanded(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 4),
+                child: Align(
+                  alignment: Alignment.bottomCenter,
+                  child: Container(
+                    key: ValueKey('expense-chart-bar-$index'),
+                    height: ExpenseChart._maxBarHeight * heightFactor,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF7D2AE8),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                  ),
+                ),
+              ),
+            );
+          },
+        ).toList(),
+      ),
+    );
+  }
+}
+
+class _EmptyChartMessage extends StatelessWidget {
+  const _EmptyChartMessage();
+
+  @override
+  Widget build(BuildContext context) {
+    return const SizedBox(
+      height: ExpenseChart._chartHeight,
+      child: Center(
+        child: Text(
+          'Nenhuma movimentação no período.',
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            color: Colors.black54,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
       ),
     );
   }

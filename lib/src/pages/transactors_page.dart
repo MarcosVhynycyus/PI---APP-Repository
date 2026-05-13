@@ -70,14 +70,6 @@ class _TransactorsPageState extends State<TransactorsPage> {
     }
   }
 
-  void _goToMain() {
-    Navigator.pushNamedAndRemoveUntil(
-      context,
-      '/main',
-      (route) => false,
-    );
-  }
-
   Future<void> _loadTransactors({
     bool showLoader = true,
   }) async {

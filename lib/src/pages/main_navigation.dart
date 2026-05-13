@@ -51,6 +51,14 @@ class _MainNavigationState extends State<MainNavigation> {
     });
   }
 
+  void _goToAccounts() {
+    if (_currentIndex == 3) return;
+
+    setState(() {
+      _currentIndex = 3;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final pages = [
@@ -70,7 +78,12 @@ class _MainNavigationState extends State<MainNavigation> {
         onLogoTap: _goToHome,
         userInitial: _userInitial,
       ),
-      const ProfilePage(),
+      ProfilePage(
+        onOpenAccounts: _goToAccounts,
+        onProfileChanged: () {
+          _loadUserInitial();
+        },
+      ),
     ];
 
     return Scaffold(
