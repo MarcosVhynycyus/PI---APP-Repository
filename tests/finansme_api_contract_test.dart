@@ -588,6 +588,34 @@ void main() {
         isA<String>(),
       );
     });
+
+    test('CT15 — Gerar resposta do conselheiro de IA', () async {
+      //ARRANGE
+      server.enqueue((request) async {
+        _expectRequest(request, 'GET', '/ai-response');
+        _expectBearerToken(request, token);
+
+        await request.respondJson(
+          HttpStatus.ok,
+          {
+            'AI_response':
+                'Revise seus maiores gastos e mantenha uma reserva mensal.',
+          },
+        );
+      });
+
+      //ACT
+      final response = await api.get(
+        '/ai-response',
+        token: token,
+      );
+
+      //ASSERT
+      expect(
+        response['AI_response'],
+        isA<String>(),
+      );
+    });
   });
 }
 
