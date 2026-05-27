@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'pages/ai_advisor_page.dart';
 import 'pages/account_plans_page.dart';
 import 'pages/login_page.dart';
 import 'pages/main_navigation.dart';
@@ -46,6 +47,7 @@ class MyApp extends StatelessWidget {
       routes: {
         '/login': (_) => const LoginPage(),
         '/main': (_) => const MainNavigation(),
+        '/ai-advisor': (_) => const AiAdvisorPage(),
         '/account-plans': (_) => const AccountPlansPage(),
         '/transactors': (_) => const TransactorsPage(),
       },

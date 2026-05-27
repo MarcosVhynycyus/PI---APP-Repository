@@ -205,6 +205,11 @@ class _ProfilePageState extends State<ProfilePage> {
                     title: 'Transatores',
                     onTap: () => Navigator.pushNamed(context, '/transactors'),
                   ),
+                  SettingsTile(
+                    icon: Icons.auto_awesome,
+                    title: 'Concelheiro de IA',
+                    onTap: () => Navigator.pushNamed(context, '/ai-advisor'),
+                  ),
                   const SizedBox(height: 24),
                   Text(
                     'Segurança',
